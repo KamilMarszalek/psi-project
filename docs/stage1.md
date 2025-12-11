@@ -42,7 +42,7 @@ Wariant może modyfikować założenia podane wyżej, wtedy oczywiście ważniej
 ---
 
 ### Warianty implementacyjne  
-- W22 – implementacja w C/C++  
+- **W22** – implementacja w C/C++  
 
 ---
 
