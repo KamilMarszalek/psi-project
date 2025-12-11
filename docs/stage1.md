@@ -106,25 +106,15 @@ typedef struct {
 typedef struct {
     char node_name[32];        // Nazwa węzła
     unsigned short port;   // Port węzła
-    char predecessor_name[32]; // Nazwa poprzednika
-    unsigned short predecessor_port; // Port poprzednika
-    char successor_name[32];   // Nazwa następcy
-    unsigned short successor_port; // Port następcy
-} RoutingEntry;
+    Entry* successor;    // Wskaźnik na następny wpis w tablicy routingu
+    Entry* predecessor;  // Wskaźnik na poprzedni wpis w tablicy routingu   
+} Entry;
 ```
 - Struktura Broadcast Message:
 ```c
 typedef struct {
-    enum message_type {
-        REQUEST,
-        ACCEPTED
-    } type;                  // Typ komunikatu
     char node_name[32];    // Nazwa węzła dołączającego
     unsigned short port; // Port węzła dołączającego
-    char predecessor_name[32]; // Nazwa poprzednika
-    unsigned short predecessor_port; // Port poprzednika
-    char successor_name[32];   // Nazwa następcy
-    unsigned short successor_port; // Port następcy
 } BroadcastMessage;
 ```
 ## Planowany podział na moduły i struktura komunikacji
