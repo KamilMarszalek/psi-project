@@ -90,6 +90,43 @@ System PSI Token Ring udostępnia następujące funkcje widoczne z zewnątrz:
 7. Procesy które otrzymały broadcast - jestem zapisany - opuszczają tryb dołączania i wracają do normalnej pracy
 8. Nowy proces czeka na token i zaczyna normalną pracę
 
+### Opis struktur danych protokołu dołączenia procesu do pieścienia
+- Struktura Token:
+```c
+typedef struct {
+    char sender[32];        // Nazwa nadawcy
+    char receiver[32];      // Nazwa odbiorcy
+    char data[256];        // Dane użytkownika
+    uint8_t is_empty;      // Flaga pustego tokena
+    uint8_t seq_bit;    // Bit sekwencji
+} Token;
+```
+- Struktura Routing Table Entry:
+```c
+typedef struct {
+    char node_name[32];        // Nazwa węzła
+    unsigned short port;   // Port węzła
+    char predecessor_name[32]; // Nazwa poprzednika
+    unsigned short predecessor_port; // Port poprzednika
+    char successor_name[32];   // Nazwa następcy
+    unsigned short successor_port; // Port następcy
+} RoutingEntry;
+```
+- Struktura Broadcast Message:
+```c
+typedef struct {
+    enum message_type {
+        REQUEST,
+        ACCEPTED
+    } type;                  // Typ komunikatu
+    char node_name[32];    // Nazwa węzła dołączającego
+    unsigned short port; // Port węzła dołączającego
+    char predecessor_name[32]; // Nazwa poprzednika
+    unsigned short predecessor_port; // Port poprzednika
+    char successor_name[32];   // Nazwa następcy
+    unsigned short successor_port; // Port następcy
+} BroadcastMessage;
+```
 ## Planowany podział na moduły i struktura komunikacji
 
 1. **Moduł `reliable_udp` (BAP)**  
