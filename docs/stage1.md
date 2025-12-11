@@ -6,74 +6,67 @@
 
 ## Temat projektu
 
-Program realizujący komunikację w **logicznym pierścieniu (token ring)** zbudowany w oparciu o protokół UDP.
+Program realizujący komunikację w logicznym pierścieniu (token ring) zbudowany w oparciu o protokół UDP.
+
+
+## Treść
+
+Napisać program realizujący komunikację w logicznym pierścieniu (token ring) w oparciu o protokół UDP.
 
 ---
 
-## Treść zadania
+### Założenia
 
-Celem projektu jest zaimplementowanie systemu komunikacji między procesami w topologii **logicznego pierścienia**. Węzły komunikują się za pomocą protokołu **UDP**, a dane są przekazywane w postaci specjalnego pakietu – **tokenu**.
-
-### Założenia ogólne
-
-- W komunikacji uczestniczą **węzły/procesy** (do testów co najmniej trzy), przy czym liczba węzłów może się zmieniać.  
-- Każdy węzeł identyfikowany jest **krótką nazwą ASCII**. Należy mapować adresy IP wezłów na ich logiczne nazwy.
-- Komunikacja odbywa się poprzez pakiet danych tzw. **token**, który jest cyklicznie przekazywany między procesami zgodnie z kolejnością w pierścieniu.  
-- Jeśli węzeł A chce wysłać dane do węzła B:
-  - czeka na **pusty token** (token bez danych),
-  - uzupełnia token o **adres odbiorcy** oraz **dane do przesłania**,
-  - przekazuje token do swojego następcy w pierścieniu.  
-- W pierścieniu musi znajdować się **dokładnie jeden token** przez cały czas działania systemu.  
-
-### Niezawodność komunikacji
-
-- Ponieważ używany jest **UDP**, konieczne jest wprowadzenie mechanizmu zapewniającego **niezawodny transfer** na poziomie połączenia między sąsiadami w pierścieniu (węzeł–węzeł).  
-- Można wykorzystać **BAP** lub zaprojektować **podobny mechanizm** (potwierdzenia, ponowne wysyłanie, timeouty itp.).
-
-### Struktura programu
-
-Program powinien być **modularny**. Sugerowane moduły:
-
-1. Moduł „**niezawodny UDP**” – implementacja BAP lub podobnego protokołu zapewniającego niezawodność.  
-2. Moduł **pierścienia komunikacyjnego** – obsługa tokenu, adresacji, routingu i przekazywania danych.  
-3. Moduł **transportu danych użytkownika** w pierścieniu.  
-4. Moduł **testów i obsługi linii komend (cmd-line)**.
-
-Dodatkowe założenia:
-
-- Do testów można przyjąć, że przesyłane są **dane tekstowe**.  
-- Między odebraniem a przekazaniem tokenu należy wprowadzić **sztuczne opóźnienie**, np. z zakresu **1–5 s**.  
-- Wystarczy **tekstowy interfejs użytkownika**:
-  - tryb pracy interaktywnej (prosty cmd-line),
-  - oraz możliwość wykonywania **testów wsadowych** (bez interakcji użytkownika).  
+- W komunikacji uczestniczą wezły / procesy (do testów minimum trzy, ale liczba może być zmienna); węzły identyfikowane są krótkimi nazwami ASCII. Należy mapować adresy IP wezłów na ich logiczne nazwy.
+- Komunikacja następuje poprzez pakiet danych, tzw. „token” (znacznik), który jest stale przekazywany cyklicznie między procesami (rysunek 1). Jeśli proces A chce wysłać dane do procesu B, to czeka na otrzymanie pustego tokenu (tokenu bez danych), następnie „doczepia” do niego adres odbiorcy oraz dane przeznaczone do niego i wysyła token to swojego następnika w pierścieniu (rysunki 2, 3, 4, 5 pokazują przekazanie danych z B do D).
+- W pierścieniu musi znajdować się zawsze jeden i tylko jeden znacznik.
+- Ponieważ korzystamy z protokołu UDP, to w łączności węzeł–węzeł (przekazanie znacznika) powinien być użyty mechanizm gwarantujący niezawodność (może to być znany już protokół BAP lub inny podobny).
+- Program powinien mieć charakter modularny. Sugerowane moduły:
+  1. „niezawodny” transfer UDP (BAP),
+  2. pierścień komunikacyjny (obsługa znacznika, adresacja, ruting, dane),
+  3. transport arbitralnych danych w pierścieniu,
+  4. testy i cmd-line.
+- W testach można założyć, że przekazujemy dane tekstowe.
+- Należy wprowadzić opóźnienie między odebraniem a odesłaniem tokenu, sensowna wartość to 1–5 s.
+- Interfejs użytkownika – wystarczy prosty interfejs tekstowy. Wskazana jest zarówno realizacja pracy interaktywnej w trybie prostego cmd-line oraz testów realizowanych wsadowo (bez interwencji użytkownika).
 
 ---
 
-## Wariant funkcjonalny W11 – dołączanie procesu do pierścienia
+### Warianty funkcjonalne
 
-Należy dodać **funkcję dynamicznego dołączania nowego procesu do pierścienia** z wykorzystaniem mechanizmu **broadcast (rozgłaszanie)**.
+(Każdy zespół otrzyma jeden z wariantów W1 i W2.  
+Wariant może modyfikować założenia podane wyżej, wtedy oczywiście ważniejsze są założenia z wariantu.)
 
-Wymagania szczegółowe:
-
-- Nowy węzeł zgłasza chęć **dołączenia do komunikacji** poprzez wysłanie odpowiedniego komunikatu broadcast.  
-- Żądanie dołączenia musi zostać **potwierdzone** przez istniejące węzły.  
-- W wyniku poprawnego dołączenia **aktualizowane są lokalne tablice routingu** w odpowiednich węzłach, tak aby nowy proces został włączony w pierścień (zmienia się następnik/poprzednik).  
-- Dołączenie powinno być zrealizowane jako **dodatkowy „miniprotokół”** (zestaw komunikatów i reguł postępowania).  
-- Możliwych rozwiązań jest wiele, np. dołączenia może dokonywać **proces, który aktualnie posiada token**.  
-- Protokół musi być zaprojektowany tak, aby **unikać wyścigów i niejednoznaczności**, np. sytuacji zduplikowania tokenu lub niespójnych tablic routingu.  
+- **W11** – Wprowadzić dodatkową funkcję dołączenia procesu do pierścienia. Powinno odbywa się to poprzez broadcast (rozgłaszanie). Węzeł (proces) zgłasza chęć akcesu do komunikacji, zostaje to potwierdzone i w efekcie zmodyfikowana zostaje lokalna tablica rutingu w określonych węzłach (rysunek 1). Realizacja przez dodatkowy „miniprotokół”, możliwych rozwiązań jest wiele, np. dołączenia może dokonać ten proces, który ma aktualnie znacznik. Uwaga – należy tak zaprojektować protokół, aby uniknąć wyścigów i innych niejednoznaczności.
 
 ---
 
-## Wariant implementacyjny W22 – implementacja w C/C++
+### Warianty implementacyjne  
+- W22 – implementacja w C/C++  
 
-Wariant W22 oznacza, że:
+---
 
-- Program musi być zaimplementowany w języku C lub C++.  
-- Środowiskiem docelowym jest **Linux**.  
-- Prezentacja działania projektu powinna odbywać się w środowisku obejmującym **co najmniej trzy maszyny połączone siecią** (mogą to być np. maszyny wirtualne, środowisko kontenerowe lub serwer bigubu).  
+## Interpretacja treści zadania
+Celem projektu jest stworzenie aplikacji komunikującej się w logicznym pierścieniu za pomocą protokołu UDP. Aplikacja będzie obsługiwać przekazywanie tokena między procesami, umożliwiając im wysyłanie i odbieranie danych. Dodatkowo, aplikacja będzie implementować mechanizm dołączania nowych procesów do pierścienia za pomocą broadcastu, zapewniając aktualizację tablic routingu i unikając konfliktów.
 
+Funkcje:
+- Implementacja niezawodnego transferu UDP za pomocą protokołu BAP.
+- Obsługa logiki pierścienia komunikacyjnego, w tym przekazywanie tokena i adresacja.
+- Mechanizm dołączania nowych procesów do pierścienia poprzez broadcast.
+- Prosty interfejs tekstowy do interakcji z użytkownikiem.
 
-## Idea na działanie protokołu dołączenia procesu do pieścienia
+## Opis funkcjonalny
+1. Procesy zostają zainicjalizowane - otwierają trzy gniazda UDP - jedno do odbierania wiadomości, drugie do przekazywania wiadomości do następnego procesu w pierścieniu, trzecie do odbierania broadcastów.
+2. Procesy tworzą dwa wątki - jeden do obsługi odbierania i wysyłania wiadomości, a drugi do obsługiwania broadcastów.
+3. Procesy komunikują się za pomocą tokena, który jest przekazywany między nimi.
+4. Procesy mogą wysyłać dane do innych procesów, doczepiając je do tokena.
+5. Procesy mogą dołączać do pierścienia poprzez wysłanie broadcastu z informacją o chęci dołączenia.
+6. Procesy aktualizują swoje tablice routingu po otrzymaniu informacji o nowym procesie.
+7. Komunikacja jest zrealizowana w sposób niezawodny, zapewniając integralność przesyłanych danych. Używamy w tym celu protokołu BAP.
+
+## Opis i analiza poprawności stosowanych protokołów komunikacyjnych
+
+### Idea na działanie protokołu dołączenia procesu do pieścienia
 1. Proces chce dołączyć do pierścienia wysyła broadcast - chce dołączyć do pierścienia.
 2. Procesy aktualnie działające otrzymują broadcast - zostaje podniesiona zmienna warunkowa nazwijmy ją - someone_wanna_join
 3. Jeśli proces jest już w trakcie wysyłania to ma zaciągnięty mutex oraz zmienną warunkową - is_sending. Kończy on wysyłanie. 
@@ -82,3 +75,10 @@ Wariant W22 oznacza, że:
 6. Nowy proces ustawia swój routing i odsyła do wszystkich broadcast - jestem zapisany - zmienna warunkowa someone_wanna_join podniesiona u wszystkich
 7. Procesy które otrzymały broadcast - jestem zapisany - opuszczają tryb dołączania i wracają do normalnej pracy
 8. Nowy proces czeka na token i zaczyna normalną pracę
+
+## Planowany podział na moduły i struktuta komunikacji między nimi
+
+## Zarys koncepcji implementacji
+Język programowania: C
+Biblioteki: pthreads, sockets, resolver
+Narzędzia: CMake, Docker Compose
