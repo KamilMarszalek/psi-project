@@ -81,9 +81,9 @@ System PSI Token Ring udostępnia następujące funkcje widoczne z zewnątrz:
 
 ### Idea na działanie protokołu dołączenia procesu do pieścienia
 
-1. Proces chce dołączyć do pierścienia wysyła broadcast - chce dołączyć do pierścienia.
-2. Procesy aktualnie działające otrzymują broadcast - zostaje podniesiona zmienna warunkowa nazwijmy ją - someone_wanna_join
-3. Jeśli proces jest już w trakcie wysyłania to ma zaciągnięty mutex oraz zmienną warunkową - is_sending. Kończy on wysyłanie.
+1. Proces chce dołączyć do pierścienia - wysyła broadcast.
+2. Procesy aktualnie działające otrzymują broadcast - proces posiadający token obsługuje dołączenie nowego procesu.
+3. Jeśli proces jest już w trakcie wysyłania to ma zaciągnięty mutex. Kończy on wysyłanie, przekazuje token do następnego procesu w pierścieniu, stanie się on poprzednikiem procesu dołączającego.
 4. Jeśli proces nie jest w trakcie wysyłania is_sending nie jest zaciągnięte to obsługujemy dołączenie nowego procesu - odsyłamy broadcast do procesu potomnego podając mu adresy: skąd i dokąd
 5. Tego samego broadcasta dostaje proces który jest już w pierścieniu on aktualizuje swój routing - teraz będzie otrzymywał wiadomości od nowego procesu
 6. Nowy proces ustawia swój routing i odsyła do wszystkich broadcast - jestem zapisany - zmienna warunkowa someone_wanna_join podniesiona u wszystkich
