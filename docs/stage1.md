@@ -55,14 +55,28 @@ Funkcje:
 - Mechanizm dołączania nowych procesów do pierścienia poprzez broadcast.
 - Prosty interfejs tekstowy do interakcji z użytkownikiem.
 
-## Opis funkcjonalny
-1. Procesy zostają zainicjalizowane - otwierają trzy gniazda UDP - jedno do odbierania wiadomości, drugie do przekazywania wiadomości do następnego procesu w pierścieniu, trzecie do odbierania broadcastów.
-2. Procesy tworzą dwa wątki - jeden do obsługi odbierania i wysyłania wiadomości, a drugi do obsługiwania broadcastów.
-3. Procesy komunikują się za pomocą tokena, który jest przekazywany między nimi.
-4. Procesy mogą wysyłać dane do innych procesów, doczepiając je do tokena.
-5. Procesy mogą dołączać do pierścienia poprzez wysłanie broadcastu z informacją o chęci dołączenia.
-6. Procesy aktualizują swoje tablice routingu po otrzymaniu informacji o nowym procesie.
-7. Komunikacja jest zrealizowana w sposób niezawodny, zapewniając integralność przesyłanych danych. Używamy w tym celu protokołu BAP.
+## Opis funkcjonalny (black-box)
+
+System PSI Token Ring udostępnia następujące funkcje widoczne z zewnątrz:
+
+1. **Uruchomienie węzła**  
+   Użytkownik może uruchomić nowy węzeł, podając jego nazwę logiczną oraz podstawową konfigurację (np. port nasłuchu, adres broadcastu). Po uruchomieniu węzeł automatycznie próbuje dołączyć do istniejącego pierścienia albo utworzyć nowy.
+
+2. **Przekazywanie tokena w pierścieniu**  
+   Węzły przekazują między sobą token w ustalonej kolejności logicznego pierścienia. W danym momencie dokładnie jeden węzeł posiada token. Token krąży niezależnie od tego, czy aktualnie przesyłane są dane użytkownika.
+
+3. **Wysyłanie wiadomości między węzłami**  
+   Użytkownik może zlecić wysłanie wiadomości tekstowej z węzła A do węzła B. Węzeł A czeka na pusty token, dołącza do niego dane (nadawca, odbiorca, treść) i przekazuje token dalej. Węzeł docelowy odbiera dane, a następnie odsyła pusty token.
+
+4. **Dynamiczne dołączanie nowych węzłów (wariant W11)**  
+   Nowy węzeł może zgłosić chęć dołączenia poprzez komunikat broadcast. Jeden z istniejących węzłów koordynuje proces dołączenia, tak aby zaktualizować lokalne tablice routingu i wpiąć nowy węzeł w pierścień bez utraty lub duplikacji tokena.
+
+5. **Niezawodny przesył między sąsiadami (BAP)**  
+   Wszystkie przekazania tokena i danych między sąsiadującymi węzłami wykorzystują warstwę niezawodnego UDP (protokół BAP lub podobny), zapewniając wykrycie utraty pakietu i retransmisje.
+
+6. **Interfejs użytkownika (CLI)**  
+   Użytkownik ma do dyspozycji prosty interfejs tekstowy umożliwiający: uruchomienie węzła, obserwację logów, zlecanie wysyłania wiadomości do innych węzłów oraz (opcjonalnie) uruchamianie scenariuszy testowych w trybie wsadowym.
+
 
 ## Opis i analiza poprawności stosowanych protokołów komunikacyjnych
 
