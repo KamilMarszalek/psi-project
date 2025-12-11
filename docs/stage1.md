@@ -98,7 +98,6 @@ typedef struct {
     char receiver[32];      // Nazwa odbiorcy
     char data[256];        // Dane użytkownika
     uint8_t is_empty;      // Flaga pustego tokena
-    uint8_t seq_bit;    // Bit sekwencji
 } Token;
 ```
 - Struktura Routing Table Entry:
