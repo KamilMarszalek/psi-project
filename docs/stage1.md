@@ -90,7 +90,30 @@ System PSI Token Ring udostępnia następujące funkcje widoczne z zewnątrz:
 7. Procesy które otrzymały broadcast - jestem zapisany - opuszczają tryb dołączania i wracają do normalnej pracy
 8. Nowy proces czeka na token i zaczyna normalną pracę
 
-## Planowany podział na moduły i struktuta komunikacji między nimi
+## Planowany podział na moduły i struktura komunikacji
+
+1. **Moduł `reliable_udp` (BAP)**  
+   - Odpowiada za niezawodny transfer między dwoma endpointami UDP.  
+   - Udostępnia API w stylu: `rupd_send()`, `rupd_recv()`, które wewnętrznie realizują potwierdzenia, numery sekwencyjne, timeouty i retransmisje.
+
+2. **Moduł `ring_core` (logika token ring)**  
+   - Zawiera reprezentację tokena (struktura C) oraz tablicę routingu (mapowanie nazwa węzła → adres/port + następnik).  
+   - Implementuje logikę przekazywania tokena, obsługę pustego tokena, osadzanie/odbiór danych użytkownika.
+
+3. **Moduł `join_protocol` (wariant W11)**  
+   - Obsługuje komunikaty broadcast związane z dołączaniem nowych węzłów.  
+   - Realizuje prostą maszynę stanów: `IDLE → JOIN_REQUEST_RECEIVED → ROUTING_UPDATE → JOIN_CONFIRMED`.  
+   - Utrzymuje synchronizację z modułem `ring_core`, tak aby w trakcie dołączania nie powstał drugi token.
+
+4. **Moduł `cli` / `node_app` (interfejs procesu-węzła)**  
+   - Parsuje argumenty linii poleceń (np. `--name`, `--listen-port`, `--broadcast-addr`).  
+   - Uruchamia odpowiednie wątki: wątek obsługi tokena i wątek obsługi broadcastów.  
+   - Udostępnia użytkownikowi prosty interfejs tekstowy (np. komendy: `send <node> <msg>`, `show-routing`, `quit`).
+
+5. **Moduł `tests`**  
+   - Zawiera scenariusze testowe (np. skrypty uruchamiające kilka węzłów w Docker Compose).  
+   - Odpowiada za generowanie logów wykorzystywanych potem w sprawozdaniu.
+
 
 ## Zarys koncepcji implementacji
 - Język programowania: C
