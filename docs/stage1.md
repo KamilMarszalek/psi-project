@@ -79,6 +79,6 @@ Funkcje:
 ## Planowany podział na moduły i struktuta komunikacji między nimi
 
 ## Zarys koncepcji implementacji
-Język programowania: C
-Biblioteki: pthreads, sockets, resolver
-Narzędzia: CMake, Docker Compose
+- Język programowania: C
+- Biblioteki: pthreads, sockets, resolver
+- Narzędzia: CMake, Docker Compose
