@@ -121,7 +121,7 @@ typedef struct {
 
 1. **Moduł `reliable_udp` (BAP)**  
    - Odpowiada za niezawodny transfer między dwoma endpointami UDP.  
-   - Udostępnia API w stylu: `rupd_send()`, `rupd_recv()`, które wewnętrznie realizują potwierdzenia, numery sekwencyjne, timeouty i retransmisje.
+   - Udostępnia API w stylu: `rudp_send()`, `rudp_recv()`, które wewnętrznie realizują potwierdzenia, numery sekwencyjne, timeouty i retransmisje.
 
 2. **Moduł `ring_core` (logika token ring)**  
    - Zawiera reprezentację tokena (struktura C) oraz tablicę routingu (mapowanie nazwa węzła → adres/port + następnik).  
