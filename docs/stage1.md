@@ -1,19 +1,22 @@
-# PSI Projekt 2025Z
-## Autorzy:
-- Damian D'Souza (lider)
-- Kamil Marszałek
-- Michał Szwejk
+---
+title: "PSI Projekt 2025Z"
+author:
+
+- "Damian D'Souza (lider)"
+- "Kamil Marszałek"
+- "Michał Szwejk"
+date: "11.12.2025"
+geometry: margin=2.5cm
+documentclass: article
+---
 
 ## Temat projektu
 
 Program realizujący komunikację w logicznym pierścieniu (token ring) zbudowany w oparciu o protokół UDP.
 
-
 ## Treść
 
 Napisać program realizujący komunikację w logicznym pierścieniu (token ring) w oparciu o protokół UDP.
-
----
 
 ### Założenia
 
@@ -30,8 +33,6 @@ Napisać program realizujący komunikację w logicznym pierścieniu (token ring)
 - Należy wprowadzić opóźnienie między odebraniem a odesłaniem tokenu, sensowna wartość to 1–5 s.
 - Interfejs użytkownika – wystarczy prosty interfejs tekstowy. Wskazana jest zarówno realizacja pracy interaktywnej w trybie prostego cmd-line oraz testów realizowanych wsadowo (bez interwencji użytkownika).
 
----
-
 ### Warianty funkcjonalne
 
 (Każdy zespół otrzyma jeden z wariantów W1 i W2.  
@@ -39,17 +40,16 @@ Wariant może modyfikować założenia podane wyżej, wtedy oczywiście ważniej
 
 - **W11** – Wprowadzić dodatkową funkcję dołączenia procesu do pierścienia. Powinno odbywa się to poprzez broadcast (rozgłaszanie). Węzeł (proces) zgłasza chęć akcesu do komunikacji, zostaje to potwierdzone i w efekcie zmodyfikowana zostaje lokalna tablica rutingu w określonych węzłach (rysunek 1). Realizacja przez dodatkowy „miniprotokół”, możliwych rozwiązań jest wiele, np. dołączenia może dokonać ten proces, który ma aktualnie znacznik. Uwaga – należy tak zaprojektować protokół, aby uniknąć wyścigów i innych niejednoznaczności.
 
----
-
 ### Warianty implementacyjne  
+
 - **W22** – implementacja w C/C++  
 
----
-
 ## Interpretacja treści zadania
+
 Celem projektu jest stworzenie aplikacji komunikującej się w logicznym pierścieniu za pomocą protokołu UDP. Aplikacja będzie obsługiwać przekazywanie tokena między procesami, umożliwiając im wysyłanie i odbieranie danych. Dodatkowo, aplikacja będzie implementować mechanizm dołączania nowych procesów do pierścienia za pomocą broadcastu, zapewniając aktualizację tablic routingu i unikając konfliktów.
 
 Funkcje:
+
 - Implementacja niezawodnego transferu UDP za pomocą protokołu BAP.
 - Obsługa logiki pierścienia komunikacyjnego, w tym przekazywanie tokena i adresacja.
 - Mechanizm dołączania nowych procesów do pierścienia poprzez broadcast.
@@ -77,13 +77,13 @@ System PSI Token Ring udostępnia następujące funkcje widoczne z zewnątrz:
 6. **Interfejs użytkownika (CLI)**  
    Użytkownik ma do dyspozycji prosty interfejs tekstowy umożliwiający: uruchomienie węzła, obserwację logów, zlecanie wysyłania wiadomości do innych węzłów oraz (opcjonalnie) uruchamianie scenariuszy testowych w trybie wsadowym.
 
-
 ## Opis i analiza poprawności stosowanych protokołów komunikacyjnych
 
 ### Idea na działanie protokołu dołączenia procesu do pieścienia
+
 1. Proces chce dołączyć do pierścienia wysyła broadcast - chce dołączyć do pierścienia.
 2. Procesy aktualnie działające otrzymują broadcast - zostaje podniesiona zmienna warunkowa nazwijmy ją - someone_wanna_join
-3. Jeśli proces jest już w trakcie wysyłania to ma zaciągnięty mutex oraz zmienną warunkową - is_sending. Kończy on wysyłanie. 
+3. Jeśli proces jest już w trakcie wysyłania to ma zaciągnięty mutex oraz zmienną warunkową - is_sending. Kończy on wysyłanie.
 4. Jeśli proces nie jest w trakcie wysyłania is_sending nie jest zaciągnięte to obsługujemy dołączenie nowego procesu - odsyłamy broadcast do procesu potomnego podając mu adresy: skąd i dokąd
 5. Tego samego broadcasta dostaje proces który jest już w pierścieniu on aktualizuje swój routing - teraz będzie otrzymywał wiadomości od nowego procesu
 6. Nowy proces ustawia swój routing i odsyła do wszystkich broadcast - jestem zapisany - zmienna warunkowa someone_wanna_join podniesiona u wszystkich
@@ -91,7 +91,9 @@ System PSI Token Ring udostępnia następujące funkcje widoczne z zewnątrz:
 8. Nowy proces czeka na token i zaczyna normalną pracę
 
 ### Opis struktur danych protokołu dołączenia procesu do pieścienia
+
 - Struktura Token:
+
 ```c
 typedef struct {
     char sender[32];        // Nazwa nadawcy
@@ -100,7 +102,9 @@ typedef struct {
     uint8_t is_empty;      // Flaga pustego tokena
 } Token;
 ```
+
 - Struktura Routing Table Entry:
+
 ```c
 typedef struct {
     char node_name[32];        // Nazwa węzła
@@ -109,13 +113,16 @@ typedef struct {
     Entry* predecessor;  // Wskaźnik na poprzedni wpis w tablicy routingu   
 } Entry;
 ```
+
 - Struktura Broadcast Message:
+
 ```c
 typedef struct {
     char node_name[32];    // Nazwa węzła dołączającego
     unsigned short port; // Port węzła dołączającego
 } BroadcastMessage;
 ```
+
 ## Planowany podział na moduły i struktura komunikacji
 
 1. **Moduł `reliable_udp` (BAP)**  
@@ -140,8 +147,8 @@ typedef struct {
    - Zawiera scenariusze testowe (np. skrypty uruchamiające kilka węzłów w Docker Compose).  
    - Odpowiada za generowanie logów wykorzystywanych potem w sprawozdaniu.
 
-
 ## Zarys koncepcji implementacji
+
 - Język programowania: C
 - Biblioteki: pthreads, sockets, resolver
 - Narzędzia: CMake, Docker Compose
