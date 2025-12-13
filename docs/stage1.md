@@ -224,5 +224,7 @@ typedef struct {
 ## Zarys koncepcji implementacji
 
 - Język programowania: C
-- Biblioteki: pthreads, sockets, resolver
-- Narzędzia: CMake, Docker Compose
+- Biblioteki: pthread, socket, arpa/inet, podstawowe biblioteki do pracy z językiem C np. stdio.h, stdlib.h, string.h, time.h
+- Narzędzia: CMake, Docker Compose, Docker
+
+Projekt zostanie przetestowany na serwerze Bigubu.
