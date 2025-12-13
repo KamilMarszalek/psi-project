@@ -79,6 +79,9 @@ System udostępnia następujące funkcje widoczne z zewnątrz:
 
 ## Opis i analiza poprawności stosowanych protokołów komunikacyjnych
 
+### Diagram stanu
+![Diagram stanu protokołu dołączenia procesu do pieścienia](state_diagram.png)
+
 ### Idea na działanie protokołu dołączenia procesu do pieścienia
 
 1. Proces chce dołączyć do pierścienia - wysyła broadcast. Wszystkie procesy w pierścieniu otrzymują broadcast - dodają go do swojej kolejki procesów oczekujących na dołączenie.
