@@ -57,7 +57,7 @@ Funkcje:
 
 ## Opis funkcjonalny (black-box)
 
-System PSI Token Ring udostępnia następujące funkcje widoczne z zewnątrz:
+System udostępnia następujące funkcje widoczne z zewnątrz:
 
 1. **Uruchomienie węzła**  
    Użytkownik może uruchomić nowy węzeł, podając jego nazwę logiczną oraz podstawową konfigurację (np. port nasłuchu, adres broadcastu). Po uruchomieniu węzeł automatycznie próbuje dołączyć do istniejącego pierścienia albo utworzyć nowy.
