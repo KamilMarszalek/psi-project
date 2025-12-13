@@ -159,10 +159,10 @@ Proces A chce dołączyć do pierścienia. Wysyła broadcast, który jest odbier
 
 ```c
 typedef struct {
-    char sender[32];        // Nazwa nadawcy
-    char receiver[32];      // Nazwa odbiorcy
-    char data[256];        // Dane użytkownika
-    uint8_t is_empty;      // Flaga pustego tokena
+    char sender[32];        
+    char receiver[32];      
+    char data[256];        
+    uint8_t is_empty;      
 } Token;
 ```
 
@@ -170,19 +170,27 @@ typedef struct {
 
 ```c
 typedef struct {
-    char node_name[32];        // Nazwa węzła
-    unsigned short port;   // Port węzła
-    Entry* successor;    // Wskaźnik na następny wpis w tablicy routingu
-    Entry* predecessor;  // Wskaźnik na poprzedni wpis w tablicy routingu   
+    char node_name[32];        
+    unsigned short port;   
+    Entry* successor;
+    Entry* predecessor;     
 } Entry;
+```
+- Enum Type Message:
+```c
+typedef enum {
+    JOIN_REQUEST,
+    JOIN_ACCEPT
+} MessageType;
 ```
 
 - Struktura Broadcast Message:
 
 ```c
 typedef struct {
-    char node_name[32];    // Nazwa węzła dołączającego
-    unsigned short port; // Port węzła dołączającego
+    MessageType type;      
+    char node_name[32]; 
+    unsigned short port; 
 } BroadcastMessage;
 ```
 
