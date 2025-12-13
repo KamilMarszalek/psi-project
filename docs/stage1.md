@@ -199,7 +199,8 @@ typedef struct {
 
 ## Planowany podział na moduły i struktura komunikacji
 
-1. **Moduł `reliable_udp` (BAP)**  
+1. **Moduł `reliable_udp` (BAP)** 
+   - Wewnątrz modułu znajduje się resolver do mapowania nazw węzłów na adresy IP i porty UDP.
    - Odpowiada za niezawodny transfer między dwoma endpointami UDP.  
    - Udostępnia API w stylu: `rudp_send()`, `rudp_recv()`, które wewnętrznie realizują potwierdzenia, numery sekwencyjne, timeouty i retransmisje.
 
@@ -209,13 +210,12 @@ typedef struct {
 
 3. **Moduł `join_protocol` (wariant W11)**  
    - Obsługuje komunikaty broadcast związane z dołączaniem nowych węzłów.  
-   - Realizuje prostą maszynę stanów: `IDLE → JOIN_REQUEST_RECEIVED → ROUTING_UPDATE → JOIN_CONFIRMED`.  
-   - Utrzymuje synchronizację z modułem `ring_core`, tak aby w trakcie dołączania nie powstał drugi token.
+   - Utrzymuje synchronizację z modułem `ring_core`, tak aby nie doszło do wyścigów.
 
 4. **Moduł `cli` / `node_app` (interfejs procesu-węzła)**  
    - Parsuje argumenty linii poleceń (np. `--name`, `--listen-port`, `--broadcast-addr`).  
-   - Uruchamia odpowiednie wątki: wątek obsługi tokena i wątek obsługi broadcastów.  
-   - Udostępnia użytkownikowi prosty interfejs tekstowy (np. komendy: `send <node> <msg>`, `show-routing`, `quit`).
+   - Aplikacja nasłuchuje na 3 gniazdach: broadcast, unicast, CLI (interfejs użytkownika).  
+   - CLI udostępnia użytkownikowi prosty interfejs tekstowy (np: `send <node> <msg>`).
 
 5. **Moduł `tests`**  
    - Zawiera scenariusze testowe (np. skrypty uruchamiające kilka węzłów w Docker Compose).  
