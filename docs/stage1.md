@@ -141,8 +141,17 @@ void handle_unicast() {
 ```
 
 ### Analiza poprawności protokołu dołączenia procesu do pierścienia
-- Scenariusz 1: Proces A chce dołączyć do pierścienia. Wysyła broadcast, który jest odbierany przez wszystkie procesy w pierścieniu.Proces posiadający token np. proces B sprawdza czy jest w trakcie wysyłania tokena. Jeśli tak, to kończy wysyłanie i przekazuje token dalej. Obsługą dołączenia procesu A zajmie się proces będacy następnikiem B. Reszta jak w scenariuszu 2.
-- Scenariusz 2: Proces B posiadający token nie jest w trakcie wysyłania tokena. Odbiera broadcast od procesu A i obsługuje jego dołączenie. Wysyła broadcast typu accept do wszystkich procesów w pierścieniu z tablicą routingu procesu A. Zainteresowane procesy aktualizują swoje tablice routingu i wyrzucają proces A z kolejki procesów oczekujących na dołączenie. Proces B staje się następnikiem procesu A w pierścieniu.
+Proces A chce dołączyć do pierścienia. Wysyła broadcast, który jest odbierany przez wszystkie procesy w pierścieniu.Proces posiadający token np. proces B sprawdza czy jest w trakcie wysyłania tokena.
+- Scenariusz 1: Jeśli tak, to kończy wysyłanie i przekazuje token dalej. Wysyłanie przebiegnie poprawnie ponieważ znajduje się w strefie krytycznej i nie może zostać przerwane poprzez pojawienie się broadcastu. Mutex zostanie przez nią zaciągnięty po obudzeniu ze zmiennej warunkowej. Obsługą dołączenia procesu A zajmie się proces będacy następnikiem B. Reszta jak w scenariuszu 2. 
+
+   $\rightarrow$ Przykładowy pierścień na początku: **B[token]** -> C -> D -> B. 
+
+   $\rightarrow$ Po dołączeniu A: B -> A -> **C[token]**-> D -> B
+- Scenariusz 2: Proces B posiadający token nie jest w trakcie wysyłania tokena. Odbiera broadcast od procesu A i obsługuje jego dołączenie. Wysyła broadcast typu accept do wszystkich procesów w pierścieniu z tablicą routingu procesu A. Wysyłanie broadcastu nie nastąpi równolegle z przesłaniem tokenu, ponieważ obie operacje są w strefie krytycznej i wzajemnie się wykluczają. Zainteresowane procesy aktualizują swoje tablice routingu i wyrzucają proces A z kolejki procesów oczekujących na dołączenie. Proces B staje się następnikiem procesu A w pierścieniu. 
+
+   $\rightarrow$ Przykładowy pierścień na początku: **B[token]** -> C -> D -> B. 
+
+   $\rightarrow$ Po dołączeniu A: A -> **B[token]** -> C-> D -> A
 
 ### Opis struktur danych protokołu dołączenia procesu do pieścienia
 
