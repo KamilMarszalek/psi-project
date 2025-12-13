@@ -81,14 +81,68 @@ System udostępnia następujące funkcje widoczne z zewnątrz:
 
 ### Idea na działanie protokołu dołączenia procesu do pieścienia
 
-1. Proces chce dołączyć do pierścienia - wysyła broadcast.
-2. Procesy aktualnie działające otrzymują broadcast - proces posiadający token obsługuje dołączenie nowego procesu.
-3. Jeśli proces jest już w trakcie wysyłania to ma zaciągnięty mutex. Kończy on wysyłanie, przekazuje token do następnego procesu w pierścieniu, stanie się on poprzednikiem procesu dołączającego.
-4. Jeśli proces nie jest w trakcie wysyłania is_sending nie jest zaciągnięte to obsługujemy dołączenie nowego procesu - odsyłamy broadcast do procesu potomnego podając mu adresy: skąd i dokąd
-5. Tego samego broadcasta dostaje proces który jest już w pierścieniu on aktualizuje swój routing - teraz będzie otrzymywał wiadomości od nowego procesu
-6. Nowy proces ustawia swój routing i odsyła do wszystkich broadcast - jestem zapisany - zmienna warunkowa someone_wanna_join podniesiona u wszystkich
-7. Procesy które otrzymały broadcast - jestem zapisany - opuszczają tryb dołączania i wracają do normalnej pracy
-8. Nowy proces czeka na token i zaczyna normalną pracę
+1. Proces chce dołączyć do pierścienia - wysyła broadcast. Wszystkie procesy w pierścieniu otrzymują broadcast - dodają go do swojej kolejki procesów oczekujących na dołączenie.
+2. Proces posiadający token obsługuje dołączenie nowego procesu.
+   - Jeśli proces jest już w trakcie wysyłania to ma zaciągnięty mutex. Kończy on wysyłanie, przekazuje token do następnego procesu w pierścieniu, stanie się on poprzednikiem procesu dołączającego.
+   - Jeśli proces nie jest w trakcie wysyłania (is_sending == false) to obsługujemy dołączenie nowego procesu - wyciągamy proces z kolejki i odsyłamy broadcast typu accept podając tablicę routingu nowego procesu. Zainteresowane procesy aktualizują swoje tablice routingu. Wszystkie procesy wyrzucają ten proces z kolejki procesów oczekujących.
+3. Nowy proces czeka na token i zaczyna normalną pracę
+
+### Pseudokod obsługi dołączenia procesu do pieścienia
+
+```c
+int maxfd = max3(broadcast_socket, cli_socket, unicast_socket);
+Queue = {}
+bool is_sending = false;
+while (1) {
+    fd_set rfds;
+    FD_ZERO(&rfds);
+
+    FD_SET(broadcast_socket, &rfds);
+    FD_SET(cli_socket, &rfds);
+    FD_SET(unicast_socket, &rfds);
+
+    int ret = select(maxfd + 1, &rfds, NULL, NULL, NULL); 
+    if (ret < 0) {
+        if (errno == EINTR) continue;  
+        perror("select");
+        break;
+    }
+
+    if (FD_ISSET(broadcast_socket, &rfds)) {
+        handle_broadcast();
+        continue;
+    }
+
+    if (Queue.not_empty() && has_token()) {
+        lock(&mutex);
+        if !is_sending {
+            handle_join()
+        }
+        unlock(&mutex);
+        continue;
+    }
+
+    if (FD_ISSET(cli_socket, &rfds) && has_empty_token()) {
+        load_data_to_token();
+    }
+
+    if (FD_ISSET(unicast_socket, &rfds)) {
+        is_sending = true;
+        pthread_create(&handle_unicast);
+    }
+}
+
+void handle_unicast() {
+    lock(&mutex);
+    pthread_cond_timedwait(timeout, mutex, timespec);
+    is_sending = false;
+    unlock(&mutex);
+}
+```
+
+### Analiza poprawności protokołu dołączenia procesu do pierścienia
+- Scenariusz 1: Proces A chce dołączyć do pierścienia. Wysyła broadcast, który jest odbierany przez wszystkie procesy w pierścieniu.Proces posiadający token np. proces B sprawdza czy jest w trakcie wysyłania tokena. Jeśli tak, to kończy wysyłanie i przekazuje token dalej. Obsługą dołączenia procesu A zajmie się proces będacy następnikiem B. Reszta jak w scenariuszu 2.
+- Scenariusz 2: Proces B posiadający token nie jest w trakcie wysyłania tokena. Odbiera broadcast od procesu A i obsługuje jego dołączenie. Wysyła broadcast typu accept do wszystkich procesów w pierścieniu z tablicą routingu procesu A. Zainteresowane procesy aktualizują swoje tablice routingu i wyrzucają proces A z kolejki procesów oczekujących na dołączenie. Proces B staje się następnikiem procesu A w pierścieniu.
 
 ### Opis struktur danych protokołu dołączenia procesu do pieścienia
 
