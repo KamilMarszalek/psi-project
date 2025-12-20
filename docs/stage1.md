@@ -199,6 +199,8 @@ typedef struct {
 ```
 
 ### Opis poprawności działania protokołu BAP
+Zwykły protokół BAP wydaje się niewystarczający do zapewnienia niezawodnej transmisji w naszym systemie, ponieważ nie uwzględnia on sytuacji, w której ACK może zostać utracony. W takim przypadku nadawca może nie być świadomy, że odbiorca otrzymał wiadomość, co prowadzi do potencjalnych problemów z synchronizacyjnych i wydajnościowych.
+
 1. P1 $\rightarrow$ MSG $\rightarrow$ P2         (P1 wysyła do czasu otrzymania ACK)
 2. P1 $\leftarrow$ ACK $\leftarrow$ P2           (P2 wysyła do czasu otrzymania ACK-ACK)
 3. P1 $\rightarrow$ ACK-ACK $\rightarrow$ P2     (P1 wysyła kilka razy, potem PRZESTAJE po timeout)
