@@ -203,7 +203,7 @@ Do transmisji unicast zostanie użyty standardowy protokół BAP.
 
 Proces obsługujący dołączanie nowego procesu do pierścienia będzie oczekiwał na potwierdzenie od 2 procesów odbioru broadcastu typu ACCEPT (od jego poprzednika i procesu, który chce dołączyć do pierścienia) np. poprzez broadcast typu ACK. W przypadku braku potwierdzenia w określonym czasie proces wysyłający accept będzie ponawiał wysyłanie komunikatu broadcast. Procesy odbierające komunikat broadcast będą wysyłały potwierdzenie odbioru do nadawcy. W ten sposób zostanie zapewniona niezawodność transmisji broadcast.
 
-W przypadku transmisji broadcast typu JOIN_REQUEST nie będzie wymagane potwierdzenie odbioru, ponieważ procesy odbierające ten komunikat będą dodawały go do swojej kolejki procesów oczekujących na dołączenie. A jeśli w ustalonym czasie nie dostaną ACCEPT to po prostu wyślą ponownie JOIN_REQUEST.
+W przypadku transmisji broadcast typu JOIN_REQUEST nie będzie wymagane potwierdzenie odbioru, ponieważ zostanie wprowadzony mechanizm wersjonowania pierścienia, który pozwoli na zapobieganie duplikacji obsługi wielu broadcastów od tego samego procesu, który chce dołączyć do pierścienia. Jeśli w ustalonym czasie nie dostanie ACCEPT to po prostu wyśle ponownie JOIN_REQUEST i dzięki wersjonowaniu nie dojdzie do błędu.
 
 ## Planowany podział na moduły i struktura komunikacji
 
