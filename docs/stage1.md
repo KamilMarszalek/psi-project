@@ -175,6 +175,7 @@ typedef struct {
 typedef struct {
     char node_name[32];        
     unsigned short port;   
+    unsigned int version;
     Entry* successor;
     Entry* predecessor;     
 } Entry;
