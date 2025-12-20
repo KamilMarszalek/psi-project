@@ -199,7 +199,12 @@ typedef struct {
 ```
 
 ### Opis poprawności działania protokołu BAP
-Do transmisji unicast zostanie użyty standardowy protokół BAP. 
+1. P1 $\rightarrow$ MSG $\rightarrow$ P2         (P1 wysyła do czasu otrzymania ACK)
+2. P1 $\leftarrow$ ACK $\leftarrow$ P2           (P2 wysyła do czasu otrzymania ACK-ACK)
+3. P1 $\rightarrow$ ACK-ACK $\rightarrow$ P2     (P1 wysyła kilka razy, potem PRZESTAJE po timeout)
+4. P2 odbiera ACK-ACK albo po ustalonym timeoucie przestaje wysyłać ACK
+
+Do transmisji unicast zostanie użyty zmodyfikowany protokół BAP opisany powyżej (three-way handshake z ACK-ACK).
 
 Proces obsługujący dołączanie nowego procesu do pierścienia będzie oczekiwał na potwierdzenie od 2 procesów odbioru broadcastu typu ACCEPT (od jego poprzednika i procesu, który chce dołączyć do pierścienia) np. poprzez broadcast typu ACK. W przypadku braku potwierdzenia w określonym czasie proces wysyłający accept będzie ponawiał wysyłanie komunikatu broadcast. Procesy odbierające komunikat broadcast będą wysyłały potwierdzenie odbioru do nadawcy. W ten sposób zostanie zapewniona niezawodność transmisji broadcast.
 
