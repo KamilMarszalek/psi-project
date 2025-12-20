@@ -203,7 +203,12 @@ Do transmisji unicast zostanie użyty standardowy protokół BAP.
 
 Proces obsługujący dołączanie nowego procesu do pierścienia będzie oczekiwał na potwierdzenie od 2 procesów odbioru broadcastu typu ACCEPT (od jego poprzednika i procesu, który chce dołączyć do pierścienia) np. poprzez broadcast typu ACK. W przypadku braku potwierdzenia w określonym czasie proces wysyłający accept będzie ponawiał wysyłanie komunikatu broadcast. Procesy odbierające komunikat broadcast będą wysyłały potwierdzenie odbioru do nadawcy. W ten sposób zostanie zapewniona niezawodność transmisji broadcast.
 
-W przypadku transmisji broadcast typu JOIN_REQUEST nie będzie wymagane potwierdzenie odbioru, ponieważ zostanie wprowadzony mechanizm wersjonowania pierścienia, który pozwoli na zapobieganie duplikacji obsługi wielu broadcastów od tego samego procesu, który chce dołączyć do pierścienia. Jeśli w ustalonym czasie nie dostanie ACCEPT to po prostu wyśle ponownie JOIN_REQUEST i dzięki wersjonowaniu nie dojdzie do błędu.
+W przypadku transmisji broadcast typu JOIN_REQUEST nie będzie wymagane potwierdzenie odbioru, ponieważ proces będzie wysyłał co jakiś czas nowe żądanie dołączenie. 
+Jeśli w ustalonym czasie nie dostanie ACCEPT to po prostu wyśle ponownie JOIN_REQUEST.
+
+Proces przy wysyłaniu broadcastu JOIN_REQUEST będzie generował identyfikator żądania dołączenia (np. losowa liczba). Procesy odbierające broadcast będą przechowywały identyfikatory już obsłużonych żądań dołączenia, aby uniknąć wielokrotnej obsługi tego samego żądania.
+
+Wersjonowanie - razem z tokenem będzie przesyłana aktualna wersja pierścienia - liczba całkowita zwiększana o 1 przy każdej zmianie w pierścieniu (dołączenie nowego procesu). Procesy przy odbiorze tokena będą porównywały wersję pierścienia w tokenie z lokalną wersją. Jeśli wersja w tokenie będzie nowsza to proces usunie odpowiednią liczbę requestów z kolejki oczekujących do dołączenia (różnica wersji = liczba dołączonych procesów od ostatniego przejścia tokena przez dany proces).
 
 ## Planowany podział na moduły i struktura komunikacji
 
