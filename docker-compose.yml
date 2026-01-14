@@ -1,0 +1,46 @@
+services:
+  node0:
+    build:
+      dockerfile: dockerfile
+    image: z11_token_ring
+    container_name: z11_node0
+    environment:
+      NODE_NAME: z11_node0
+      NODE_PORT: 8080
+      PREV_NODE_NAME: z11_node2
+      PREV_NODE_PORT: 8080
+      NEXT_NODE_NAME: z11_node1
+      NEXT_NODE_PORT: 8080
+    networks: [z11_network]
+
+  node1:
+    build:
+      dockerfile: dockerfile
+    image: z11_token_ring
+    container_name: z11_node1
+    environment:
+      NODE_NAME: z11_node1
+      NODE_PORT: 8080
+      PREV_NODE_NAME: z11_node0
+      PREV_NODE_PORT: 8080
+      NEXT_NODE_NAME: z11_node2
+      NEXT_NODE_PORT: 8080
+    networks: [z11_network]
+
+  node2:
+    build:
+      dockerfile: dockerfile
+    image: z11_token_ring
+    container_name: node2
+    environment:
+      NODE_NAME: z11_node2
+      NODE_PORT: 8080
+      NEXT_NODE_NAME: z11_node0
+      NEXT_NODE_PORT: 8080
+      PREV_NODE_NAME: z11_node1
+      PREV_NODE_PORT: 8080
+    networks: [z11_network]
+
+networks:
+  z11_network:
+    external: true
