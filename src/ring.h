@@ -3,13 +3,13 @@
 
 #include "route.h"
 
-typedef struct Sockets {
+typedef struct Descriptiors {
     int unicast_socket;
     // int broadcast_socket;
-    // int cli_socket;
-} sockets_t;
+    int cli_fd;
+} descriptors_t;
 
-int ring_initalize(route_config_t* config, sockets_t* sockets);
-int ring_run(route_config_t* config, sockets_t* sockets);
+int ring_initalize(route_config_t* config, descriptors_t* descriptors);
+int ring_run(route_config_t config, descriptors_t descriptors);
 
 #endif
