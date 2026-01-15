@@ -1,15 +1,7 @@
-#include <stdio.h>
-#include <string.h>
-
-#include <stdbool.h>
-#include <stdint.h>
 #include <stdlib.h>
-#include <unistd.h>
 
-#include "consts.h"
 #include "ring.h"
 #include "route.h"
-#include "token.h"
 
 
 int main(int argc, char** argv) {

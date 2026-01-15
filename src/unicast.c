@@ -55,7 +55,7 @@ int unicast_handle(int unicast_socket, token_t* token, route_t* next) {
     };
     // TODO: Consume if user is the receiver, eventually fill token if it is empty
     if (token->is_empty) {
-        printf("Received empty token\n");
+        printf("Received empty token");
     } else {
         printf("Receieved token with message: %s that was sent by %s\n", token->data, token->sender);
     }

@@ -10,10 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/socket.h>
-#include <sys/types.h>
+#include <sys/select.h>
 
 int fill_config_from_env(route_config_t* config);
 
