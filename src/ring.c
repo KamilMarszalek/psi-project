@@ -28,7 +28,7 @@ int ring_initalize(route_config_t* config, descriptors_t* descriptors) {
         return -1;
     }
 
-    int cli_fd = cli_setup_reader(FIFO_FILE, FIOF_FILE_PERMISSIONS);
+    int cli_fd = cli_setup_reader(FIFO_FILE, FIFO_FILE_PERMISSIONS);
     if (cli_fd < 0) {
         return -1;
     }

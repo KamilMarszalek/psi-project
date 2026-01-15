@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
     strncpy(token.reciever, argv[2], MAX_NODE_NAME_SIZE - 1);
     strncpy(token.sender, sender_name_env, MAX_NODE_NAME_SIZE - 1);
 
-    int cli_fd = cli_setup_writer(FIFO_FILE, FIOF_FILE_PERMISSIONS);
+    int cli_fd = cli_setup_writer(FIFO_FILE, FIFO_FILE_PERMISSIONS);
     if (cli_fd < 0) {
         exit(EXIT_FAILURE);
     }
