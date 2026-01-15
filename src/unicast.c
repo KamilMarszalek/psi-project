@@ -6,6 +6,7 @@
 
 #include <netdb.h>
 #include <stdio.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <arpa/inet.h>
@@ -57,15 +58,22 @@ int unicast_handle(int unicast_socket, token_pair_t tokens, route_config_t confi
 
     token_t token_to_send = *tokens.from_unicast;
 
-    if (!tokens.from_unicast->is_empty && tokens.from_unicast->reciever == config.current->node_name) {
-        printf("Received message from %s: %s\n", tokens.from_unicast->sender, tokens.from_unicast->data);
-        token_to_send = (token_t) {0};
-        token_to_send.is_empty = true;
+    if (!tokens.from_unicast->is_empty) {
+        if (strcmp(tokens.from_unicast->reciever, config.current->node_name) == 0) {
+            printf("Received message from %s: %s\n", tokens.from_unicast->sender, tokens.from_unicast->data);
+            memset(&token_to_send, 0, sizeof(token_t));
+            token_to_send.is_empty = true;
+        } else {
+            printf("Forwarding already filled token\n");
+        }
 
     } else if (tokens.from_unicast->is_empty) {
         printf("Received empty token\n");
         if (!tokens.from_cli->is_empty) {
             token_to_send = *tokens.from_cli;
+            memset(tokens.from_cli, 0, sizeof(token_t));
+            tokens.from_cli->is_empty = true;
+            printf("Filled token with data: receiver=%s; data=%s\n", token_to_send.reciever, token_to_send.data);
         }
     }
 
