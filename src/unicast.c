@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#include "unicast.h"
 
 #include "route.h"
 #include "token.h"
@@ -15,7 +16,7 @@
 int receive_token(int unicast_socket, token_t* token);
 int forward_token(int unicast_socket, token_t* token, route_t* next);
 
-int unicast_setup(route_t* config) {
+int unicast_setup_socket(route_t* current) {
     int sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock_fd == -1) {
         perror("opening socket");
@@ -25,7 +26,7 @@ int unicast_setup(route_t* config) {
     struct sockaddr_in host_addr = {
         .sin_family = AF_INET,
         .sin_addr.s_addr = INADDR_ANY,
-        .sin_port = htons(config->port),
+        .sin_port = htons(current->port),
     };
     socklen_t length = sizeof(host_addr);
 
@@ -49,18 +50,27 @@ int unicast_forward_first_token(int unicast_socket, route_t* next) {
 }
 
 
-int unicast_handle(int unicast_socket, token_t* token, route_t* next) {
-    if (receive_token(unicast_socket, token) < 0) {
+int unicast_handle(int unicast_socket, token_pair_t tokens, route_config_t config) {
+    if (receive_token(unicast_socket, tokens.from_unicast) < 0) {
         return -1;
     };
-    // TODO: Consume if user is the receiver, eventually fill token if it is empty
-    if (token->is_empty) {
+
+    token_t token_to_send = *tokens.from_unicast;
+
+    if (!tokens.from_unicast->is_empty && tokens.from_unicast->reciever == config.current->node_name) {
+        printf("Received message from %s: %s\n", tokens.from_unicast->sender, tokens.from_unicast->data);
+        token_to_send = (token_t) {0};
+        token_to_send.is_empty = true;
+
+    } else if (tokens.from_unicast->is_empty) {
         printf("Received empty token\n");
-    } else {
-        printf("Received token with message: %s that was sent by %s\n", token->data, token->sender);
+        if (!tokens.from_cli->is_empty) {
+            token_to_send = *tokens.from_cli;
+        }
     }
+
     sleep(1);//simulate delay
-    if (forward_token(unicast_socket, token, next) < 0) {
+    if (forward_token(unicast_socket, &token_to_send, config.next) < 0) {
         return -1;
     };
 

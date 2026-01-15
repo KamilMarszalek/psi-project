@@ -10,9 +10,9 @@ typedef struct Route {
 } route_t;
 
 typedef struct RouteConfig {
-    route_t current;
-    route_t prev;
-    route_t next;
+    route_t* current;
+    route_t* prev;
+    route_t* next;
 } route_config_t;
 
 #endif
