@@ -18,7 +18,7 @@ int cli_setup_reader(const char* filename, int permissions) {
         return -1;
     }
 
-    int cli_fd = open(FIFO_FILE, O_RDONLY | O_NONBLOCK);
+    int cli_fd = open(filename, O_RDWR);
     if (cli_fd < 0) {
         perror("opening fifo");
         return -1;
@@ -33,7 +33,7 @@ int cli_setup_writer(const char* filename, int permissions) {
         return -1;
     }
 
-    int cli_fd = open(FIFO_FILE, O_WRONLY);
+    int cli_fd = open(filename, O_WRONLY);
     if (cli_fd < 0) {
         perror("opening fifo");
         return -1;
