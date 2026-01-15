@@ -7,4 +7,4 @@ COPY CMakeLists.txt .
 COPY src ./src
 
 RUN mkdir build && cd build && cmake .. && make
-ENTRYPOINT ["/app/build/src/main"]
+ENTRYPOINT ["/app/build/src/core"]

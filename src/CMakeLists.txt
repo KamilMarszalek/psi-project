@@ -8,7 +8,10 @@ add_library(cli STATIC cli.c)
 add_library(ring STATIC ring.c)
 target_link_libraries(ring PRIVATE unicast)
 
-add_executable(main main.c)
-target_link_libraries(main PRIVATE ring)
-target_link_libraries(main PRIVATE cli)
+add_executable(core core.c)
+target_link_libraries(core PRIVATE ring)
+target_link_libraries(core PRIVATE cli)
+
+add_executable(writer writer.c)
+target_link_libraries(writer PRIVATE cli)
 
