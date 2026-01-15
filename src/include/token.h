@@ -2,6 +2,7 @@
 #define TOKEN_H
 
 #include "consts.h"
+#include <stdbool.h>
 
 typedef struct Token {
     char data[MAX_TOKEN_SIZE];

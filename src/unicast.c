@@ -37,7 +37,7 @@ int unicast_setup(route_t* config) {
     return sock_fd;
 }
 
-int unicast_send_first_token(int unicast_socket, route_t* next) {
+int unicast_forward_first_token(int unicast_socket, route_t* next) {
     token_t token = {0};
     token.is_empty = true;
 
@@ -55,9 +55,9 @@ int unicast_handle(int unicast_socket, token_t* token, route_t* next) {
     };
     // TODO: Consume if user is the receiver, eventually fill token if it is empty
     if (token->is_empty) {
-        printf("Received empty token");
+        printf("Received empty token\n");
     } else {
-        printf("Receieved token with message: %s that was sent by %s\n", token->data, token->sender);
+        printf("Received token with message: %s that was sent by %s\n", token->data, token->sender);
     }
     sleep(1);//simulate delay
     if (forward_token(unicast_socket, token, next) < 0) {

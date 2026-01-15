@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "ring.h"
@@ -12,10 +13,12 @@ int main(int argc, char** argv) {
     sockets_t sockets = {0};
 
     if (ring_initalize(&config, &sockets) < 0) {
+        fflush(stdout);
         exit(EXIT_FAILURE);
     }
 
     if (ring_run(&config, &sockets) < 0) {
+        fflush(stdout);
         exit(EXIT_FAILURE);
     }
 
