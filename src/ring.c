@@ -33,13 +33,18 @@ int ring_run(route_config_t* config, sockets_t* sockets) {
     struct timeval timeout;
     token_t token;
 
+    printf("Node initalized, waiting for UDP packets.\n");
+
     if (getenv("SHOULD_START")) {
-        if (unicast_send_first_token(sockets->unicast_socket, &config->next) < 0) {
+        printf("Sending initial empty token.\n");
+        if (unicast_forward_first_token(sockets->unicast_socket, &config->next) < 0) {
             return -1;
         }
     }
 
     while (1) {
+        fflush(stdout);
+
         FD_ZERO(&rfds);
         FD_SET(sockets->unicast_socket, &rfds);
 
@@ -52,7 +57,7 @@ int ring_run(route_config_t* config, sockets_t* sockets) {
                 continue;
             }
             perror("reading descriptors (select)");
-            return -1;
+            break;
         }
 
         if (ret == 0) {
@@ -62,11 +67,9 @@ int ring_run(route_config_t* config, sockets_t* sockets) {
 
         if (FD_ISSET(sockets->unicast_socket, &rfds)) {
             if (unicast_handle(sockets->unicast_socket, &token, &config->next) < 0) {
-                return -1;
+                break;
             }
         }
-
-        fflush(stdout);
     }
 
     return 0;
