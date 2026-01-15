@@ -102,7 +102,11 @@ int event_loop(route_config_t* config, sockets_t* sockets) {
 
     // int maxfd = max3(sockets->unicast_socket, sockets->broadcast_socket, sockets->cli_socket);
 
+    printf("Node %s entering event loop, waiting for token...\n", config->current.node_name);
+
     while (1) {
+        fflush(stdout);
+
         FD_ZERO(&rfds);
         FD_SET(sockets->unicast_socket, &rfds);
 
@@ -116,6 +120,11 @@ int event_loop(route_config_t* config, sockets_t* sockets) {
             }
             perror("reading descriptors (select)");
             return -1;
+        }
+
+        if (ret == 0) {
+            printf("Timeout waiting for token\n");
+            continue;
         }
 
         if (FD_ISSET(sockets->unicast_socket, &rfds)) {

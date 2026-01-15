@@ -25,12 +25,15 @@ int main(int argc, char** argv) {
     }
 
     if (getenv("SHOULD_START")) {
-        sleep(10);// make sure every other node is already initalized, maybe something like 'READY' should be sent
+        fflush(stdout);
         token_t token = {0};
         strncpy(token.data, "very important message", MAX_TOKEN_SIZE);
         strncpy(token.sender, config.current.node_name, MAX_NODE_NAME_SIZE);
         strncpy(token.reciever, config.next.node_name, MAX_NODE_NAME_SIZE);
         token.is_empty = false;
+
+        printf("Forwarding first token\n");
+        fflush(stdout);
         if (forward_token(&config.next, unicast_socket, &token) < 0) {
             perror("forwarding first token");
             exit(EXIT_FAILURE);
