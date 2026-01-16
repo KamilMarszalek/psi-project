@@ -1,18 +1,16 @@
 #define _GNU_SOURCE
 #include "unicast.h"
-
 #include "route.h"
 #include "token.h"
 
+#include <arpa/inet.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
-
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <unistd.h>
 
 int receive_token(int unicast_socket, token_t* token);
 int forward_token(int unicast_socket, token_t* token, route_t* next);
