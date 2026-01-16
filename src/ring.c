@@ -1,17 +1,16 @@
-#include "token.h"
 #define _GNU_SOURCE
 #include "ring.h"
 
 #include "cli.h"
 #include "consts.h"
 #include "route.h"
+#include "token.h"
 #include "unicast.h"
 
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
 #include <sys/select.h>
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
