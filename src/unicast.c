@@ -1,6 +1,8 @@
 #define _GNU_SOURCE
 #include "unicast.h"
+
 #include "route.h"
+#include "rudp.h"
 #include "token.h"
 
 #include <arpa/inet.h>
@@ -75,7 +77,7 @@ int unicast_handle(int unicast_socket, token_pair_t tokens, route_config_t confi
         }
     }
 
-    sleep(1);//simulate delay
+    sleep(3);//simulate delay
     if (forward_token(unicast_socket, &token_to_send, config.next) < 0) {
         return -1;
     };
@@ -86,12 +88,7 @@ int unicast_handle(int unicast_socket, token_pair_t tokens, route_config_t confi
 int receive_token(int unicast_sock, token_t* token) {
     struct sockaddr_in prev_node_addr;
     socklen_t length = sizeof(prev_node_addr);
-    ssize_t n_recv = recvfrom(unicast_sock, token, sizeof(*token), 0, (struct sockaddr*) &prev_node_addr, &length);
-    if (n_recv < 0) {
-        perror("receiving token");
-        return -1;
-    }
-    return 0;
+    return rudp_recvfrom(unicast_sock, token, sizeof(token_t), &prev_node_addr, length);
 }
 
 int forward_token(int unicast_sock, token_t* token, route_t* next) {
@@ -122,11 +119,5 @@ int forward_token(int unicast_sock, token_t* token, route_t* next) {
         freeaddrinfo(addr_res);
     }
 
-    // TODO: Reliable UDP is needed here
-    if (sendto(unicast_sock, token, sizeof(*token), 0, (struct sockaddr*) &next_node_addr, length) < 0) {
-        perror("sending token");
-        return -1;
-    }
-
-    return 0;
+    return rudp_sendto(unicast_sock, token, sizeof(token_t), &next_node_addr, length);
 }
