@@ -19,7 +19,7 @@
 
 int fill_config_from_env(route_config_t* config);
 
-int ring_initalize(route_config_t* config, descriptors_t* descriptors) {
+int ring_initialize(route_config_t* config, descriptors_t* descriptors) {
     if (fill_config_from_env(config) < 0) {
         return -1;
     }
