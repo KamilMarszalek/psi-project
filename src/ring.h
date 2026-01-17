@@ -3,7 +3,7 @@
 
 #include "route.h"
 
-typedef struct Descriptiors {
+typedef struct Descriptors {
     int unicast_socket;
     // int broadcast_socket;
     int cli_fd;
