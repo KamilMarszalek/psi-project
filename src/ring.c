@@ -49,6 +49,8 @@ int ring_initialize(route_config_t* config, descriptors_t* descriptors) {
 
 int ring_run(route_config_t* config, descriptors_t* descriptors) {
     fd_set rfds;
+    struct timeval timeout;
+    join_state_t join_state = {0};
     token_t from_unicast = {.is_empty = true};
     token_t from_cli = {.is_empty = true};
     token_pair_t tokens = {.from_unicast = &from_unicast, .from_cli = &from_cli};
@@ -69,7 +71,12 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
         FD_SET(descriptors.broadcast_socket, &rfds);
         FD_SET(descriptors.cli_fd, &rfds);
 
-        int ret = select(maxfd + 1, &rfds, NULL, NULL, NULL);
+        timeout.tv_sec = SELECT_TIMEOUT_S;
+        timeout.tv_usec = 0;
+
+        int ret = select(maxfd + 1, &rfds, NULL, NULL, &timeout);
+        time_t now = time(NULL);
+        prune_joins(&join_state, now, 15);
         if (ret < 0) {
             if (errno == EINTR) {
                 continue;
@@ -79,7 +86,7 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
         }
 
         if (FD_ISSET(descriptors.broadcast_socket, &rfds)) {
-            if (handle_broadcast(descriptors.broadcast_socket) < 0) {
+            if (handle_broadcast(descriptors.broadcast_socket, &join_state) < 0) {
                 break;
             }
         }
