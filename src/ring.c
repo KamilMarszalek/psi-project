@@ -40,8 +40,6 @@ int ring_initalize(route_config_t* config, descriptors_t* descriptors) {
 
 int ring_run(route_config_t config, descriptors_t descriptors) {
     fd_set rfds;
-    struct timeval timeout;
-
     token_t from_unicast = {.is_empty = true};
     token_t from_cli = {.is_empty = true};
     token_pair_t tokens = {.from_unicast = &from_unicast, .from_cli = &from_cli};
@@ -63,34 +61,26 @@ int ring_run(route_config_t config, descriptors_t descriptors) {
         FD_SET(descriptors.unicast_socket, &rfds);
         FD_SET(descriptors.cli_fd, &rfds);
 
-        timeout.tv_sec = SELECT_TIMEOUT_S;
-        timeout.tv_usec = 0;
-
-        int ret = select(maxfd + 1, &rfds, NULL, NULL, &timeout);
+        int ret = select(maxfd + 1, &rfds, NULL, NULL, NULL);
         if (ret < 0) {
             if (errno == EINTR) {
                 continue;
             }
             perror("reading descriptors (select)");
-            break;
-        }
-
-        if (ret == 0) {
-            printf("Timeout reached\n");
-            continue;
+            return -1;
         }
 
         // TODO: add broadcast handling
 
         if (FD_ISSET(descriptors.cli_fd, &rfds)) {
             if (cli_handle_read(descriptors.cli_fd, tokens.from_cli) < 0) {
-                break;
+                return -1;
             }
         }
 
         if (FD_ISSET(descriptors.unicast_socket, &rfds)) {
             if (unicast_handle(descriptors.unicast_socket, tokens, config) < 0) {
-                break;
+                return -1;
             }
         }
     }
