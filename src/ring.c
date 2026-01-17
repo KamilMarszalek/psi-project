@@ -3,6 +3,7 @@
 
 #include "cli.h"
 #include "consts.h"
+#include "logger.h"
 #include "route.h"
 #include "token.h"
 #include "unicast.h"
@@ -46,7 +47,7 @@ int ring_run(route_config_t config, descriptors_t descriptors) {
 
     int maxfd = MAX(descriptors.unicast_socket, descriptors.cli_fd);
 
-    printf("Node initalized, waiting for UDP packets.\n");
+    LOG_INFO("Node initalized, waiting for UDP packets");
 
     if (getenv("SHOULD_START")) {
         if (unicast_forward_first_token(descriptors.unicast_socket, config.next) < 0) {
@@ -66,7 +67,7 @@ int ring_run(route_config_t config, descriptors_t descriptors) {
             if (errno == EINTR) {
                 continue;
             }
-            perror("reading descriptors (select)");
+            LOG_ERROR("Reading descriptors: %s", strerror(errno));
             return -1;
         }
 
@@ -99,7 +100,7 @@ int fill_config_from_env(route_config_t* config) {
     char* next_node_port = getenv("NEXT_NODE_PORT");
 
     if (!node_name || !node_port || !prev_node_name || !prev_node_port || !next_node_name || !next_node_port) {
-        fprintf(stderr, "Some env variables are missing\n");
+        LOG_ERROR("Some env variables are missing");
         return -1;
     }
 

@@ -1,7 +1,6 @@
 #include "ring.h"
 #include "route.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
@@ -17,14 +16,10 @@ int main(int argc, char* argv[]) {
     descriptors_t descriptors = {0};
 
     if (ring_initalize(&config, &descriptors) < 0) {
-        fflush(stdout);
-        fflush(stderr);
         exit(EXIT_FAILURE);
     }
 
     if (ring_run(config, descriptors) < 0) {
-        fflush(stdout);
-        fflush(stderr);
         exit(EXIT_FAILURE);
     }
 
