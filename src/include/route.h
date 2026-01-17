@@ -6,7 +6,8 @@
 
 typedef struct Route {
     char node_name[MAX_NODE_NAME_SIZE];
-    uint16_t port;
+    uint16_t unicast_port;
+    uint16_t broadcast_port;
 } route_t;
 
 typedef struct RouteConfig {
