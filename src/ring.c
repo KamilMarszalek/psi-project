@@ -90,27 +90,30 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
 
 int fill_config_from_env(route_config_t* config) {
     char* node_name = getenv("NODE_NAME");
-    char* node_port = getenv("NODE_PORT");
+    char* uni_port = getenv("NODE_UNI_PORT");
+
+    char* b_port = getenv("NODE_BROAD_PORT");
 
     char* prev_node_name = getenv("PREV_NODE_NAME");
-    char* prev_node_port = getenv("PREV_NODE_PORT");
+    char* prev_node_port = getenv("PREV_NODE_UNI_PORT");
 
     char* next_node_name = getenv("NEXT_NODE_NAME");
-    char* next_node_port = getenv("NEXT_NODE_PORT");
+    char* next_node_port = getenv("NEXT_NODE_UNI_PORT");
 
-    if (!node_name || !node_port || !prev_node_name || !prev_node_port || !next_node_name || !next_node_port) {
+    if (!node_name || !uni_port || !prev_node_name || !prev_node_port || !next_node_name || !next_node_port) {
         LOG_ERROR("Some env variables are missing");
         return -1;
     }
 
     strncpy(config->current->node_name, node_name, MAX_NODE_NAME_SIZE - 1);
-    config->current->port = (uint16_t) atoi(node_port);
+    config->current->unicast_port = (uint16_t) atoi(uni_port);
 
     strncpy(config->prev->node_name, prev_node_name, MAX_NODE_NAME_SIZE - 1);
-    config->prev->port = (uint16_t) atoi(prev_node_port);
+    config->prev->unicast_port = (uint16_t) atoi(prev_node_port);
 
     strncpy(config->next->node_name, next_node_name, MAX_NODE_NAME_SIZE - 1);
-    config->next->port = (uint16_t) atoi(next_node_port);
+    config->next->unicast_port = (uint16_t) atoi(next_node_port);
+    config->current->broadcast_port = (uint16_t) atoi(b_port);
 
     return 0;
 }

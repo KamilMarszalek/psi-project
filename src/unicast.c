@@ -28,7 +28,7 @@ int unicast_setup_socket(route_t* current) {
     struct sockaddr_in host_addr = {
         .sin_family = AF_INET,
         .sin_addr.s_addr = INADDR_ANY,
-        .sin_port = htons(current->port),
+        .sin_port = htons(current->unicast_port),
     };
     socklen_t length = sizeof(host_addr);
 
@@ -95,7 +95,7 @@ static int receive_token(int unicast_sock, token_t* token) {
 static int forward_token(int unicast_sock, token_t* token, route_t* next) {
     struct sockaddr_in next_node_addr = {
         .sin_family = AF_INET,
-        .sin_port = htons(next->port),
+        .sin_port = htons(next->unicast_port),
     };
     socklen_t length = sizeof(next_node_addr);
 

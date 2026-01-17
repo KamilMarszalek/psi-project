@@ -21,7 +21,7 @@ int broadcast_setup_socket(const route_t* current) {
     struct sockaddr_in host_addr = {
         .sin_family = AF_INET,
         .sin_addr.s_addr = INADDR_ANY,
-        .sin_port = htons(current->port),
+        .sin_port = htons(current->broadcast_port),
     };
     socklen_t length = sizeof(host_addr);
     if (bind(sock_fd, (struct sockaddr*) &host_addr, length) < 0) {
