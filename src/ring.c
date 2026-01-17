@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include "ring.h"
 
+#include "broadcast.h"
 #include "cli.h"
 #include "consts.h"
 #include "logger.h"
@@ -15,7 +16,7 @@
 #include <string.h>
 #include <sys/select.h>
 
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MAX3(x, y, z) (((x) > (y)) ? (((x) > (z)) ? (x) : (z)) : (((y) > (z)) ? (y) : (z)))
 
 int fill_config_from_env(route_config_t* config);
 
@@ -29,12 +30,18 @@ int ring_initialize(route_config_t* config, descriptors_t* descriptors) {
         return -1;
     }
 
+    int broadcast_socket = broadcast_setup_socket(config->current);
+    if (broadcast_socket < 0) {
+        return -1;
+    }
+
     int cli_fd = cli_setup_reader(FIFO_FILE, FIFO_FILE_PERMISSIONS);
     if (cli_fd < 0) {
         return -1;
     }
 
     descriptors->unicast_socket = unicast_socket;
+    descriptors->broadcast_socket = broadcast_socket;
     descriptors->cli_fd = cli_fd;
 
     return 0;
@@ -46,7 +53,7 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
     token_t from_cli = {.is_empty = true};
     token_pair_t tokens = {.from_unicast = &from_unicast, .from_cli = &from_cli};
 
-    int maxfd = MAX(descriptors->unicast_socket, descriptors->cli_fd);
+    int maxfd = MAX3(descriptors.unicast_socket, descriptors.broadcast_socket, descriptors.cli_fd);
 
     LOG_INFO("Node initalized, waiting for UDP packets");
 
@@ -58,8 +65,9 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
 
     while (1) {
         FD_ZERO(&rfds);
-        FD_SET(descriptors->unicast_socket, &rfds);
-        FD_SET(descriptors->cli_fd, &rfds);
+        FD_SET(descriptors.unicast_socket, &rfds);
+        FD_SET(descriptors.broadcast_socket, &rfds);
+        FD_SET(descriptors.cli_fd, &rfds);
 
         int ret = select(maxfd + 1, &rfds, NULL, NULL, NULL);
         if (ret < 0) {
@@ -70,17 +78,21 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
             return -1;
         }
 
-        // TODO: add broadcast handling
-
-        if (FD_ISSET(descriptors->cli_fd, &rfds) && (int) from_cli.is_empty) {
-            if (cli_handle_read(descriptors->cli_fd, &from_cli) < 0) {
-                return -1;
+        if (FD_ISSET(descriptors.broadcast_socket, &rfds)) {
+            if (handle_broadcast(descriptors.broadcast_socket) < 0) {
+                break;
             }
         }
 
-        if (FD_ISSET(descriptors->unicast_socket, &rfds)) {
-            if (unicast_handle(descriptors->unicast_socket, &tokens, config) < 0) {
-                return -1;
+        if (FD_ISSET(descriptors.cli_fd, &rfds)) {
+            if (cli_handle_read(descriptors.cli_fd, tokens.from_cli) < 0) {
+                break;
+            }
+        }
+
+        if (FD_ISSET(descriptors.unicast_socket, &rfds)) {
+            if (unicast_handle(descriptors.unicast_socket, tokens, config) < 0) {
+                break;
             }
         }
     }
