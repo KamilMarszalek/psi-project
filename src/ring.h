@@ -5,7 +5,7 @@
 
 typedef struct Descriptors {
     int unicast_socket;
-    // int broadcast_socket;
+    int broadcast_socket;
     int cli_fd;
 } descriptors_t;
 
