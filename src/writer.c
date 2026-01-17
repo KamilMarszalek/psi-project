@@ -12,7 +12,7 @@
 
 int main(int argc, char* argv[]) {
     if (argc != 3) {
-        fprintf(stderr, "Args missing. Usage: %s <data> <reciever_name>\n", argv[0]);
+        fprintf(stderr, "Args missing. Usage: %s <data> <receiver_name>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
@@ -34,7 +34,7 @@ int main(int argc, char* argv[]) {
 
     token_t token = {.is_empty = false};
     strncpy(token.data, argv[1], MAX_DATA_SIZE - 1);
-    strncpy(token.reciever, argv[2], MAX_NODE_NAME_SIZE - 1);
+    strncpy(token.receiver, argv[2], MAX_NODE_NAME_SIZE - 1);
     strncpy(token.sender, sender_name_env, MAX_NODE_NAME_SIZE - 1);
 
     int cli_fd = cli_setup_writer(FIFO_FILE, FIFO_FILE_PERMISSIONS);
