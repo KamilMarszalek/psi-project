@@ -231,8 +231,9 @@ int ring_on_token(ring_state_t* state, int unicast_socket) {
     if (unicast_send(unicast_socket, &out, state->config.next) < 0) {
         return -1;
     }
-    
+
     state->have_token = 0;
+    memset(&state->token_in, 0, sizeof(state->token_in));
     return 0;
 }
 
@@ -260,7 +261,8 @@ int fill_config_from_env(route_config_t* config, int joined) {
     char* next_node_name = getenv("NEXT_NODE_NAME");
     char* next_node_port = getenv("NEXT_NODE_UNI_PORT");
 
-    if (!node_name || !uni_port || !prev_node_name || !prev_node_port || !next_node_name || !next_node_port) {
+    if (!node_name || !uni_port || !prev_node_name || !prev_node_port || !next_node_name || !next_node_port ||
+        !b_port) {
         LOG_ERROR("Some env variables are missing");
         return -1;
     }
