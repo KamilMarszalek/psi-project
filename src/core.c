@@ -5,8 +5,11 @@
 #include <unistd.h>
 
 int main(int argc, char* argv[]) {
-    (void) argc;
-    (void) argv;
+    if (argc != 2) {
+        fprintf(stderr, "Usage: %s <joined: 0|1>\n", argv[0]);
+        exit(EXIT_FAILURE);
+    }
+    int joined = atoi(argv[1]);
 
     route_t current = {0};
     route_t prev = {0};
@@ -15,7 +18,7 @@ int main(int argc, char* argv[]) {
     route_config_t config = {.current = &current, .prev = &prev, .next = &next};
     descriptors_t descriptors = {0};
 
-    if (ring_initalize(&config, &descriptors) < 0) {
+    if (ring_initialize(&config, &descriptors, joined) < 0) {
         exit(EXIT_FAILURE);
     }
 

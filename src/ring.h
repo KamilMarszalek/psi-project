@@ -24,9 +24,15 @@ typedef struct {
 
     struct timeval forward_at;
     join_inflight_t join_inflight;
+
+    int joined;
+
+    uint32_t join_request_id;
+    time_t join_request_last_sent;
+    int join_request_retries;
 } ring_state_t;
 
-int ring_initialize(route_config_t* config, descriptors_t* descriptors);
-int ring_run(route_config_t config, descriptors_t descriptors);
+int ring_initialize(route_config_t* config, descriptors_t* descriptors, int joined);
+int ring_run(route_config_t config, descriptors_t descriptors, int joined);
 
 #endif

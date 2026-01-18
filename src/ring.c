@@ -18,11 +18,11 @@
 
 #define MAX3(x, y, z) (((x) > (y)) ? (((x) > (z)) ? (x) : (z)) : (((y) > (z)) ? (y) : (z)))
 
-int fill_config_from_env(route_config_t* config);
+int fill_config_from_env(route_config_t* config, int joined);
 int ring_on_token(ring_state_t* state, int unicast_socket);
 
-int ring_initialize(route_config_t* config, descriptors_t* descriptors) {
-    if (fill_config_from_env(config) < 0) {
+int ring_initialize(route_config_t* config, descriptors_t* descriptors, int joined) {
+    if (fill_config_from_env(config, joined) < 0) {
         return -1;
     }
 
@@ -34,6 +34,18 @@ int ring_initialize(route_config_t* config, descriptors_t* descriptors) {
     int broadcast_socket = broadcast_setup_socket(config->current);
     if (broadcast_socket < 0) {
         return -1;
+    }
+
+    if (!joined) {
+        srand((unsigned int) time(NULL));
+        uint32_t request_id = (uint32_t) rand();
+
+        if (broadcast_send_join_request(
+                broadcast_socket, config->current->broadcast_port, request_id, config->current->node_name,
+                config->current->unicast_port
+            ) < 0) {
+            return -1;
+        }
     }
 
     int cli_fd = cli_setup_reader(FIFO_FILE, FIFO_FILE_PERMISSIONS);
@@ -48,11 +60,46 @@ int ring_initialize(route_config_t* config, descriptors_t* descriptors) {
     return 0;
 }
 
-int ring_run(route_config_t* config, descriptors_t* descriptors) {
+static int join_request_tick(ring_state_t* st, int broadcast_socket) {
+    if (st->joined)
+        return 0;
+
+    time_t now = time(NULL);
+    if (st->join_request_last_sent != 0 && now - st->join_request_last_sent < JOIN_REQUEST_TIMEOUT_S) {
+        return 0;
+    }
+
+    if (st->join_request_retries >= JOIN_REQUEST_RETRIES) {
+        fprintf(stderr, "JOIN_REQUEST retries exhausted (id=%u)\n", st->join_request_id);
+        return 0;
+    }
+
+    if (broadcast_send_join_request(
+            broadcast_socket, st->config.current->broadcast_port, st->join_request_id, st->config.current->node_name,
+            st->config.current->unicast_port
+        ) < 0) {
+        return -1;
+    }
+
+    st->join_request_last_sent = now;
+    st->join_request_retries++;
+    return 0;
+}
+
+
+int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
     fd_set rfds;
     struct timeval timeout;
     ring_state_t state = {0};
     state.config = config;
+    state.joined = joined;
+
+    if (!state.joined) {
+        srand((unsigned int) time(NULL) ^ getpid());
+        state.join_request_id = (uint32_t) rand();
+        state.join_request_last_sent = 0;
+        state.join_request_retries = 0;
+    }
     state.join_state = (join_state_t){0};
     token_t from_unicast = {.is_empty = true};
     token_t from_cli = {.is_empty = true};
@@ -78,6 +125,15 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
         timeout.tv_usec = 0;
 
         int ret = select(maxfd + 1, &rfds, NULL, NULL, &timeout);
+        time_t now = time(NULL);
+        prune_joins(&state.join_state, now, JOIN_PENDING_TTL_S);
+        if (join_request_tick(&state, descriptors.broadcast_socket) < 0) {
+            break;
+        }
+        if (join_inflight_tick(&state, descriptors.broadcast_socket) < 0) {
+            break;
+        }
+
         if (ret < 0) {
             if (errno == EINTR) {
                 continue;
@@ -91,9 +147,6 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
                 break;
             }
         }
-
-        time_t now = time(NULL);
-        prune_joins(&state.join_state, now, 15);
 
         if (FD_ISSET(descriptors.cli_fd, &rfds)) {
             if (cli_handle_read(descriptors.cli_fd, &state.cli_pending) < 0) {
@@ -167,11 +220,18 @@ int ring_on_token(ring_state_t* state, int unicast_socket) {
     return 0;
 }
 
-int fill_config_from_env(route_config_t* config) {
+int fill_config_from_env(route_config_t* config, int joined) {
     char* node_name = getenv("NODE_NAME");
     char* uni_port = getenv("NODE_UNI_PORT");
 
     char* b_port = getenv("NODE_BROAD_PORT");
+
+    if (!joined) {
+        strncpy(config->current->node_name, node_name, MAX_NODE_NAME_SIZE - 1);
+        config->current->unicast_port = (uint16_t) atoi(uni_port);
+        config->current->broadcast_port = (uint16_t) atoi(b_port);
+        return 0;
+    }
 
     char* prev_node_name = getenv("PREV_NODE_NAME");
     char* prev_node_port = getenv("PREV_NODE_UNI_PORT");
