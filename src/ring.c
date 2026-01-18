@@ -20,6 +20,8 @@
 
 int fill_config_from_env(route_config_t* config, int joined);
 int ring_on_token(ring_state_t* state, int unicast_socket);
+static void start_join_inflight(ring_state_t* state, pending_join_t* pj);
+
 
 int ring_initialize(route_config_t* config, descriptors_t* descriptors, int joined) {
     if (fill_config_from_env(config, joined) < 0) {
@@ -80,23 +82,23 @@ static int join_request_tick(ring_state_t* st, int broadcast_socket) {
 int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
     fd_set rfds;
     struct timeval timeout;
+
     ring_state_t state = {0};
     state.config = config;
     state.joined = joined;
+    state.join_state = (join_state_t){0};
 
     if (!state.joined) {
         srand((unsigned int) time(NULL) ^ getpid());
         state.join_request_id = (uint32_t) rand();
         state.join_request_last_sent = 0;
         state.join_request_retries = 0;
+
         if (join_request_tick(&state, descriptors.broadcast_socket) < 0) {
             return -1;
         }
     }
-    state.join_state = (join_state_t){0};
-
     int maxfd = MAX3(descriptors.unicast_socket, descriptors.broadcast_socket, descriptors.cli_fd);
-
     LOG_INFO("Node initalized, waiting for UDP packets");
 
     if (getenv("SHOULD_START") && state.joined) {
@@ -116,11 +118,14 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
         timeout.tv_usec = 0;
 
         int ret = select(maxfd + 1, &rfds, NULL, NULL, &timeout);
+
         time_t now = time(NULL);
         prune_joins(&state.join_state, now, JOIN_PENDING_TTL_S);
+
         if (join_request_tick(&state, descriptors.broadcast_socket) < 0) {
             break;
         }
+
         if (join_inflight_tick(&state, descriptors.broadcast_socket) < 0) {
             break;
         }
@@ -151,13 +156,30 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
                 token_t tmp;
                 (void) unicast_recv(descriptors.unicast_socket, &tmp);
                 continue;
+            } else {
+                if (unicast_recv(descriptors.unicast_socket, &state.token_in) < 0) {
+                    break;
+                }
+                state.have_token = 1;
             }
-            if (unicast_recv(descriptors.unicast_socket, &state.token_in) < 0) {
-                break;
-            }
-            state.have_token = 1;
+        }
 
-            ring_on_token(&state, descriptors.unicast_socket);
+        if (state.joined && state.have_token) {
+            if (!state.join_inflight.active && state.join_state.count > 0) {
+                pending_join_t pj;
+                if (pop_oldest_pending_join(&state.join_state, &pj) == 0) {
+                    start_join_inflight(&state, &pj);
+                    if (join_inflight_tick(&state, descriptors.broadcast_socket) < 0) {
+                        break;
+                    }
+                }
+            }
+
+            if (!state.join_inflight.active) {
+                if (ring_on_token(&state, descriptors.unicast_socket) < 0) {
+                    break;
+                }
+            }
         }
     }
 
@@ -181,13 +203,7 @@ static void start_join_inflight(ring_state_t* state, pending_join_t* pj) {
 
 int ring_on_token(ring_state_t* state, int unicast_socket) {
     token_t out = state->token_in;
-    if (!state->join_inflight.active && state->join_state.count > 0) {
-        pending_join_t pj;
-        if (pop_oldest_pending_join(&state->join_state, &pj) == 0) {
-            start_join_inflight(state, &pj);
-        }
-    }
-    if (state->join_inflight.active) {}
+
     if (!out.is_empty) {
         if (strcmp(out.receiver, state->config.current->node_name) == 0) {
             LOG_INFO("Received token for me: %s\n", out.data);
@@ -199,19 +215,23 @@ int ring_on_token(ring_state_t* state, int unicast_socket) {
             LOG_INFO("Full token received for another node - forwarding\n");
         }
     }
+
     if (state->have_cli_pending && out.is_empty) {
         LOG_INFO("Attaching CLI token: %s\n", state->cli_pending.data);
         out = state->cli_pending;
+
         state->have_cli_pending = 0;
         state->cli_pending.is_empty = true;
         memset(state->cli_pending.data, 0, MAX_DATA_SIZE);
         memset(state->cli_pending.sender, 0, MAX_NODE_NAME_SIZE);
         memset(state->cli_pending.receiver, 0, MAX_NODE_NAME_SIZE);
     }
+
     sleep(1); // simulate processing delay
     if (unicast_send(unicast_socket, &out, state->config.next) < 0) {
         return -1;
     }
+    
     state->have_token = 0;
     return 0;
 }
