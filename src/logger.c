@@ -12,7 +12,7 @@ void logger(int level, const char* tag, const char* message, ...) {
 
     time_t now = time(NULL);
     struct tm* date = localtime(&now);
-    char buffer[30];
+    char buffer[32];
 
     strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M:%S", date);
     FILE* out = level == LOG_LEVEL_ERROR ? stderr : stdout;
