@@ -216,12 +216,13 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
     uint32_t magic = ntohl(header.magic);
     uint16_t type = ntohs(header.type);
     uint32_t request_id = ntohl(header.request_id);
-    if (!ring_state->joined && (type == JOIN_REQUEST || type == JOIN_ACK)) {
-        return 0;
-    }
 
     if (magic != JOIN_MAGIC) {
         fprintf(stderr, "Received broadcast message with invalid magic: 0x%X\n", magic);
+        return 0;
+    }
+
+    if (!ring_state->joined && (type == JOIN_REQUEST || type == JOIN_ACK)) {
         return 0;
     }
 
