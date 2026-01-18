@@ -8,4 +8,7 @@
 #define JOIN_MAGIC 0xAAAABBBB
 #define MAX_PENDING_JOINS 32
 
+#define JOIN_ACCEPT_TIMEOUT_S 1
+#define JOIN_ACCEPT_RETRIES 5
+
 #endif
