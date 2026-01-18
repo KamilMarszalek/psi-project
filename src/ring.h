@@ -1,7 +1,10 @@
 #ifndef RING_H
 #define RING_H
 
+#include "join.h"
 #include "route.h"
+#include "token.h"
+#include <sys/time.h>
 
 typedef struct Descriptors {
     int unicast_socket;
@@ -20,6 +23,7 @@ typedef struct {
     int have_cli_pending;
 
     struct timeval forward_at;
+    join_inflight_t join_inflight;
 } ring_state_t;
 
 int ring_initialize(route_config_t* config, descriptors_t* descriptors);
