@@ -52,34 +52,34 @@ int unicast_forward_first_token(int unicast_socket, route_t* next) {
 }
 
 
-int unicast_handle(int unicast_socket, token_pair_t tokens, route_config_t config) {
-    if (receive_token(unicast_socket, tokens.from_unicast) < 0) {
+int unicast_handle(int unicast_socket, token_pair_t* tokens, route_config_t* config) {
+    if (receive_token(unicast_socket, tokens->from_unicast) < 0) {
         return -1;
     };
 
-    token_t token_to_send = *tokens.from_unicast;
+    token_t token_to_send = *tokens->from_unicast;
 
-    if (!tokens.from_unicast->is_empty) {
-        if (strcmp(tokens.from_unicast->reciever, config.current->node_name) == 0) {
-            LOG_INFO("Received message from %s: %s", tokens.from_unicast->sender, tokens.from_unicast->data);
+    if (!tokens->from_unicast->is_empty) {
+        if (strcmp(tokens->from_unicast->reciever, config->current->node_name) == 0) {
+            LOG_INFO("Received message from %s: %s", tokens->from_unicast->sender, tokens->from_unicast->data);
             memset(&token_to_send, 0, sizeof(token_t));
             token_to_send.is_empty = true;
         } else {
             LOG_INFO("Forwarding already filled token");
         }
 
-    } else if (tokens.from_unicast->is_empty) {
+    } else if (tokens->from_unicast->is_empty) {
         LOG_INFO("Forwarding empty token");
-        if (!tokens.from_cli->is_empty) {
-            token_to_send = *tokens.from_cli;
-            memset(tokens.from_cli, 0, sizeof(token_t));
-            tokens.from_cli->is_empty = true;
+        if (!tokens->from_cli->is_empty) {
+            token_to_send = *tokens->from_cli;
+            memset(tokens->from_cli, 0, sizeof(token_t));
+            tokens->from_cli->is_empty = true;
             LOG_INFO("Filled token with data (receiver=%s; data=%s)", token_to_send.reciever, token_to_send.data);
         }
     }
 
     sleep(3); //simulate delay
-    if (forward_token(unicast_socket, &token_to_send, config.next) < 0) {
+    if (forward_token(unicast_socket, &token_to_send, config->next) < 0) {
         return -1;
     };
 

@@ -10,6 +10,6 @@ typedef struct Descriptiors {
 } descriptors_t;
 
 int ring_initalize(route_config_t* config, descriptors_t* descriptors);
-int ring_run(route_config_t config, descriptors_t descriptors);
+int ring_run(route_config_t* config, descriptors_t* descriptors);
 
 #endif
