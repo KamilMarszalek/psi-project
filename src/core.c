@@ -22,7 +22,9 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    if (ring_run(&config, &descriptors) < 0) {
+    if (ring_run(config, descriptors, joined) < 0) {
+        fflush(stdout);
+        fflush(stderr);
         exit(EXIT_FAILURE);
     }
 
