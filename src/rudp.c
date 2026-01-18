@@ -18,7 +18,7 @@
 #define ACK_TIMEOUT_USEC 100000
 #define ACK_ACK_DELAY_USEC 250000
 
-static int wait_for_packet(int socket, frame_t* frame, int len, int timeout_us);
+static int wait_for_packet(int socket, void* buf, int bufsize, int timeout_us);
 static int drain_socket(int socket);
 
 typedef struct {
@@ -82,7 +82,7 @@ int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_i
 
     for (int i = 0; i < MAX_TRANSMISION_ATTEMPTS; i++) {
         frame_t ack_ack_frame = {.header = {.frame_type = ACK_ACK, .seq_bit = state.send_seq_bit}};
-        if (sendto(socket, &ack_ack_frame, sizeof(ack_ack_frame), 0, (struct sockaddr*) dest_addr, addrlen) < 0) {
+        if (sendto(socket, &ack_ack_frame, sizeof(header_t), 0, (struct sockaddr*) dest_addr, addrlen) < 0) {
             LOG_ERROR("Sending ACK_ACK: %s", strerror(errno));
             return -1;
         }
@@ -122,9 +122,9 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
     int ack_ack_received = 0;
     int attempts = 0;
     while (!ack_ack_received && attempts < MAX_TRANSMISION_ATTEMPTS) {
-        header_t ack_frame = {.frame_type = ACK, .seq_bit = state.expected_seq_bit};
+        frame_t ack_frame = {.header = {.frame_type = ACK, .seq_bit = state.expected_seq_bit}};
         if (sendto(socket, &ack_frame, sizeof(header_t), 0, (struct sockaddr*) source_addr, addrlen) < 0) {
-            LOG_ERROR("Sending ACK(%u): %s", ack_frame.seq_bit, strerror(errno));
+            LOG_ERROR("Sending ACK(%u): %s", ack_frame.header.seq_bit, strerror(errno));
             return -1;
         }
 
@@ -136,9 +136,7 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
 
         if (ack_ack_result == 0) {
             attempts++;
-            LOG_DEBUG(
-                "Timeout waiting for ACK_ACK(%u), resending message (retry number %d)", state.send_seq_bit, attempts
-            );
+            LOG_DEBUG("Timeout waiting for ACK_ACK(%u), resending ACK (retry number %d)", state.send_seq_bit, attempts);
             continue;
         }
 
@@ -170,7 +168,7 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
 }
 
 
-static int wait_for_packet(int socket, frame_t* frame, int len, int timeout_us) {
+static int wait_for_packet(int socket, void* buf, int bufsize, int timeout_us) {
     fd_set rfds;
 
     FD_ZERO(&rfds);
@@ -188,7 +186,7 @@ static int wait_for_packet(int socket, frame_t* frame, int len, int timeout_us) 
     }
 
     if (FD_ISSET(socket, &rfds)) {
-        if (recvfrom(socket, frame, len, 0, NULL, NULL) < 0) {
+        if (recvfrom(socket, buf, bufsize, 0, NULL, NULL) < 0) {
             return -1;
         }
         return 1;
