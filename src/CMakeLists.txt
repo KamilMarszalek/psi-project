@@ -1,24 +1,29 @@
-add_compile_options(-Wall -Wextra -Wpedantic -g)
-
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/include)
+add_library(project_warnings INTERFACE)
+target_compile_options(project_warnings INTERFACE -Wall -Wextra -Wpedantic -g)
 
 add_library(logger STATIC logger.c)
+target_link_libraries(logger PUBLIC project_warnings)
+target_include_directories(logger PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
 add_library(cli STATIC cli.c)
-target_link_libraries(cli PRIVATE logger)
+target_link_libraries(cli PUBLIC logger)
 
 add_library(rudp STATIC rudp.c)
-target_link_libraries(rudp PRIVATE logger)
+target_link_libraries(rudp PUBLIC logger)
 
 add_library(unicast STATIC unicast.c)
+target_link_libraries(unicast PUBLIC rudp logger)
+
 add_library(join STATIC join.c)
+target_link_libraries(join PUBLIC logger)
+
 add_library(broadcast STATIC broadcast.c)
-target_link_libraries(unicast PRIVATE rudp logger)
+target_link_libraries(broadcast PUBLIC logger)
 
 add_library(ring STATIC ring.c)
-target_link_libraries(ring PRIVATE unicast logger)
-target_link_libraries(ring PRIVATE broadcast)
-target_link_libraries(ring PRIVATE join)
+target_link_libraries(ring PUBLIC unicast broadcast join logger)
 
 add_executable(core core.c)
 target_link_libraries(core PRIVATE ring cli)

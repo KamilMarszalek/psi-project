@@ -1,12 +1,14 @@
+#include "logger.h"
 #include "ring.h"
 #include "route.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
 int main(int argc, char* argv[]) {
     if (argc != 2) {
-        fprintf(stderr, "Usage: %s <joined: 0|1>\n", argv[0]);
+        LOG_ERROR("Usage: %s <joined: 0|1>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
     int joined = atoi(argv[1]);
@@ -23,8 +25,6 @@ int main(int argc, char* argv[]) {
     }
 
     if (ring_run(config, descriptors, joined) < 0) {
-        fflush(stdout);
-        fflush(stderr);
         exit(EXIT_FAILURE);
     }
 

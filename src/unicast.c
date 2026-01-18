@@ -15,8 +15,6 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-static int receive_token(int unicast_socket, token_t* token);
-static int forward_token(int unicast_socket, token_t* token, route_t* next);
 
 int unicast_setup_socket(route_t* current) {
     int sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -40,59 +38,13 @@ int unicast_setup_socket(route_t* current) {
     return sock_fd;
 }
 
-int unicast_forward_first_token(int unicast_socket, route_t* next) {
-    token_t token = {0};
-    token.is_empty = true;
-
-    if (forward_token(unicast_socket, &token, next) < 0) {
-        return -1;
-    }
-
-    return 0;
-}
-
-
-int unicast_handle(int unicast_socket, token_pair_t* tokens, route_config_t* config) {
-    if (receive_token(unicast_socket, tokens->from_unicast) < 0) {
-        return -1;
-    };
-
-    token_t token_to_send = *tokens->from_unicast;
-
-    if (!tokens.from_unicast->is_empty) {
-        if (strcmp(tokens.from_unicast->receiver, config.current->node_name) == 0) {
-            printf("Received message from %s: %s\n", tokens.from_unicast->sender, tokens.from_unicast->data);
-            memset(&token_to_send, 0, sizeof(token_t));
-            token_to_send.is_empty = true;
-        } else {
-            LOG_INFO("Forwarding already filled token");
-        }
-
-    } else if (tokens.from_unicast->is_empty) {
-        printf("Received empty token\n");
-        if (!tokens.from_cli->is_empty) {
-            token_to_send = *tokens.from_cli;
-            memset(tokens.from_cli, 0, sizeof(token_t));
-            tokens.from_cli->is_empty = true;
-            printf("Filled token with data: receiver=%s; data=%s\n", token_to_send.receiver, token_to_send.data);
-        }
-    }
-
-    sleep(3); //simulate delay
-    if (forward_token(unicast_socket, &token_to_send, config->next) < 0) {
-        return -1;
-    };
-
-    return 0;
-}
-
-static int receive_token(int unicast_sock, token_t* token) {
+int unicast_recv(int unicast_sock, token_t* token) {
     struct sockaddr_in prev_node_addr;
     socklen_t length = sizeof(prev_node_addr);
     return rudp_recvfrom(unicast_sock, token, sizeof(token_t), &prev_node_addr, length);
 }
 
-static int forward_token(int unicast_sock, token_t* token, route_t* next) {
+int unicast_send(int unicast_sock, token_t* token, route_t* next) {
     struct sockaddr_in next_node_addr = {
         .sin_family = AF_INET,
         .sin_port = htons(next->unicast_port),
