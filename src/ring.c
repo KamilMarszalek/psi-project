@@ -36,17 +36,6 @@ int ring_initialize(route_config_t* config, descriptors_t* descriptors, int join
         return -1;
     }
 
-    if (!joined) {
-        srand((unsigned int) time(NULL));
-        uint32_t request_id = (uint32_t) rand();
-
-        if (broadcast_send_join_request(
-                broadcast_socket, config->current->broadcast_port, request_id, config->current->node_name,
-                config->current->unicast_port
-            ) < 0) {
-            return -1;
-        }
-    }
 
     int cli_fd = cli_setup_reader(FIFO_FILE, FIFO_FILE_PERMISSIONS);
     if (cli_fd < 0) {
@@ -99,6 +88,9 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
         state.join_request_id = (uint32_t) rand();
         state.join_request_last_sent = 0;
         state.join_request_retries = 0;
+        if (join_request_tick(&state, descriptors.broadcast_socket) < 0) {
+            return -1;
+        }
     }
     state.join_state = (join_state_t){0};
     token_t from_unicast = {.is_empty = true};
