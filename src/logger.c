@@ -15,13 +15,12 @@ void logger(int level, const char* tag, const char* message, ...) {
     char buffer[32];
 
     strftime(buffer, sizeof(buffer), "%d-%m-%Y %H:%M:%S", date);
-    FILE* out = level == LOG_LEVEL_ERROR ? stderr : stdout;
 
-    fprintf(out, "[%s] %s: ", tag, buffer);
+    fprintf(stderr, "[%s] %s: ", tag, buffer);
     va_list args;
     va_start(args, message);
-    vfprintf(out, message, args);
+    vfprintf(stderr, message, args);
     va_end(args);
-    fprintf(out, "\n");
-    fflush(out);
+    fprintf(stderr, "\n");
+    fflush(stderr);
 }
