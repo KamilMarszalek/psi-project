@@ -171,8 +171,15 @@ int broadcast_setup_socket(const route_t* current) {
     }
 
     int broadcast_enable = 1;
+    int reuse_enable = 1;
     if (setsockopt(sock_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_enable, sizeof(broadcast_enable)) < 0) {
         perror("setting broadcast option");
+        close(sock_fd);
+        return -1;
+    }
+
+    if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_enable, sizeof(reuse_enable)) < 0) {
+        perror("setting reuse address option");
         close(sock_fd);
         return -1;
     }
