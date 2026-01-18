@@ -69,12 +69,13 @@ int unicast_handle(int unicast_socket, token_pair_t* tokens, route_config_t* con
         }
 
     } else if (tokens->from_unicast->is_empty) {
-        LOG_INFO("Forwarding empty token");
         if (!tokens->from_cli->is_empty) {
             token_to_send = *tokens->from_cli;
             memset(tokens->from_cli, 0, sizeof(token_t));
             tokens->from_cli->is_empty = true;
             LOG_INFO("Filled token with data (receiver=%s; data=%s)", token_to_send.reciever, token_to_send.data);
+        } else {
+            LOG_INFO("Forwarding empty token");
         }
     }
 
