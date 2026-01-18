@@ -72,7 +72,7 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
 
         // TODO: add broadcast handling
 
-        if (FD_ISSET(descriptors->cli_fd, &rfds)) {
+        if (FD_ISSET(descriptors->cli_fd, &rfds) && (int) from_cli.is_empty) {
             if (cli_handle_read(descriptors->cli_fd, &from_cli) < 0) {
                 return -1;
             }
