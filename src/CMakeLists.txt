@@ -7,6 +7,9 @@ target_include_directories(logger PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
+add_library(broadcast_collect_targets STATIC broadcast_targets.c)
+target_link_libraries(broadcast_collect_targets PUBLIC logger)
+
 add_library(cli STATIC cli.c)
 target_link_libraries(cli PUBLIC logger)
 
@@ -20,7 +23,7 @@ add_library(join STATIC join.c)
 target_link_libraries(join PUBLIC logger)
 
 add_library(broadcast STATIC broadcast.c)
-target_link_libraries(broadcast PUBLIC logger)
+target_link_libraries(broadcast PUBLIC broadcast_collect_targets logger)
 
 add_library(ring STATIC ring.c)
 target_link_libraries(ring PUBLIC unicast broadcast join logger)
