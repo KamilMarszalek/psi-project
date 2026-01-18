@@ -120,7 +120,7 @@ static int broadcast_send_accept(int broadcast_socket, uint16_t broadcast_port, 
     return 0;
 }
 
-static int join_inflight_tick(ring_state_t* ring_state, int broadcast_socket) {
+int join_inflight_tick(ring_state_t* ring_state, int broadcast_socket) {
     if (!ring_state->join_inflight.active) {
         return 0;
     }
@@ -147,6 +147,9 @@ static int join_inflight_tick(ring_state_t* ring_state, int broadcast_socket) {
 
     strncpy(accept.prev_name, ring_state->config.prev->node_name, MAX_NODE_NAME_SIZE - 1);
     accept.prev_unicast_port = ring_state->config.prev->unicast_port;
+    accept.new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    accept.before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    accept.prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
 
     (void) broadcast_send_accept(broadcast_socket, ring_state->config.current->broadcast_port, &accept);
 
