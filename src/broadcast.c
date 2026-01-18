@@ -222,7 +222,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
         return 0;
     }
 
-    if (!ring_state->joined && (type == JOIN_REQUEST || type == JOIN_ACK)) {
+    if (!ring_state->joined && type != JOIN_ACCEPT) {
         return 0;
     }
 
