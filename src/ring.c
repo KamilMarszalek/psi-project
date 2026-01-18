@@ -232,6 +232,7 @@ int fill_config_from_env(route_config_t* config, int joined) {
         config->current->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
         config->current->broadcast_port = (uint16_t) atoi(b_port);
         config->current->unicast_port = (uint16_t) atoi(uni_port);
+        return;
     }
 
     char* prev_node_name = getenv("PREV_NODE_NAME");
