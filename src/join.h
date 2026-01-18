@@ -6,12 +6,42 @@
 #include <stdint.h>
 #include <time.h>
 
+typedef enum {
+    JOIN_REQUEST = 1,
+    JOIN_ACCEPT = 2,
+    JOIN_ACK = 3,
+} join_message_type_t;
+
+
 typedef struct {
     uint32_t magic;//0xAAAABBBB
+    uint16_t type;
+    uint16_t reserved;
     uint32_t request_id;
+} join_message_header_t;
+
+typedef struct {
+    join_message_header_t header;
     char node_name[MAX_NODE_NAME_SIZE];
     uint16_t unicast_port;
 } join_request_t;
+
+typedef struct {
+    join_message_header_t header;
+    char new_name[MAX_NODE_NAME_SIZE];
+    uint16_t new_unicast_port;
+
+    char before_name[MAX_NODE_NAME_SIZE];
+    uint16_t before_unicast_port;
+
+    char prev_name[MAX_NODE_NAME_SIZE];
+    uint16_t prev_unicast_port;
+} join_accept_t;
+
+typedef struct {
+    join_message_header_t header;
+    char from_name[MAX_NODE_NAME_SIZE];
+} join_ack_t;
 
 typedef struct {
     int used;
@@ -21,6 +51,20 @@ typedef struct {
     struct in_addr ip;
     time_t last_seen;
 } pending_join_t;
+
+typedef struct {
+    int active;
+    uint32_t request_id;
+
+    pending_join_t joiner;
+
+    char expected_prev_name[MAX_NODE_NAME_SIZE];
+    int got_ack_prev;
+    int got_ack_joiner;
+
+    time_t last_sent;
+    int retries;
+} join_inflight_t;
 
 typedef struct {
     pending_join_t joins[MAX_PENDING_JOINS];
