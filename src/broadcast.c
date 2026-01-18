@@ -1,10 +1,28 @@
 #include "broadcast.h"
+#include "broadcast_targets.h"
 #include "consts.h"
 #include "join.h"
 #include "logger.h"
+#include <errno.h>
 
 
 #define JOIN_MAX_MSG_SIZE (sizeof(join_accept_t))
+
+static broadcast_targets_t targets[16];
+static size_t targets_count = 0;
+
+static int send_to_all_targets(int sock, const void* msg, size_t len, const broadcast_targets_t* targets, size_t n) {
+    int ok = 0;
+    for (size_t i = 0; i < n; i++) {
+        if (sendto(sock, msg, len, 0, (const struct sockaddr*) &targets[i].addr, sizeof(targets[i].addr)) < 0) {
+            LOG_WARN("sendto broadcast failed on %s: %s", targets[i].ifname, strerror(errno));
+        } else {
+            ok = 1;
+        }
+    }
+    return ok ? 0 : -1;
+}
+
 
 static int
 broadcast_send_ack(int broadcast_socket, uint16_t broadcast_port, uint32_t request_id_host, const char* from_name) {
@@ -20,7 +38,7 @@ broadcast_send_ack(int broadcast_socket, uint16_t broadcast_port, uint32_t reque
     destination.sin_addr.s_addr = htonl(INADDR_BROADCAST);
     destination.sin_port = htons(broadcast_port);
 
-    if (sendto(broadcast_socket, &ack, sizeof(ack), 0, (struct sockaddr*) &destination, sizeof(destination)) < 0) {
+    if (send_to_all_targets(broadcast_socket, &ack, sizeof(ack), targets, targets_count) < 0) {
         LOG_ERROR("sending join ack");
         return -1;
     }
@@ -116,7 +134,7 @@ static int broadcast_send_accept(int broadcast_socket, uint16_t broadcast_port, 
     destination.sin_addr.s_addr = htonl(INADDR_BROADCAST);
     destination.sin_port = htons(broadcast_port);
 
-    if (sendto(broadcast_socket, &acc, sizeof(acc), 0, (struct sockaddr*) &destination, sizeof(destination)) < 0) {
+    if (send_to_all_targets(broadcast_socket, &acc, sizeof(acc), targets, targets_count) < 0) {
         LOG_ERROR("sending join accept");
         return -1;
     }
@@ -196,6 +214,7 @@ int broadcast_setup_socket(const route_t* current) {
         close(sock_fd);
         return -1;
     }
+    targets_count = broadcast_collect_targets(current->broadcast_port, targets, 16);
     return sock_fd;
 }
 
@@ -266,8 +285,8 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             int rc = add_pending_join(&ring_state->join_state, &request_host, from.sin_addr);
             if (rc == 0) {
                 LOG_INFO(
-                    "JOIN_REQUEST id=%u name=%s uni=%u from=%s", request_host.header.request_id,
-                    request_host.node_name, request_host.unicast_port, ipbuf
+                    "JOIN_REQUEST id=%u name=%s uni=%u from=%s", request_host.header.request_id, request_host.node_name,
+                    request_host.unicast_port, ipbuf
                 );
             } else {
                 LOG_ERROR("Failed to add pending join from %s", join_request.node_name);
@@ -357,8 +376,7 @@ int broadcast_send_join_request(
     destination.sin_addr.s_addr = htonl(INADDR_BROADCAST);
     destination.sin_port = htons(broadcast_port);
 
-    if (sendto(broadcast_socket, &request, sizeof(request), 0, (struct sockaddr*) &destination, sizeof(destination)) <
-        0) {
+    if (send_to_all_targets(broadcast_socket, &request, sizeof(request), targets, targets_count) < 0) {
         LOG_ERROR("sending join request");
         return -1;
     }
