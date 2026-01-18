@@ -8,6 +8,7 @@ add_library(cli STATIC cli.c)
 target_link_libraries(cli PRIVATE logger)
 
 add_library(rudp STATIC rudp.c)
+target_link_libraries(rudp PRIVATE logger)
 
 add_library(unicast STATIC unicast.c)
 target_link_libraries(unicast PRIVATE rudp logger)

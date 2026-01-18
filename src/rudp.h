@@ -23,10 +23,6 @@ typedef struct Frame {
     char data[];
 } frame_t;
 
-typedef struct RUDPState {
-    uint8_t send_seq_bit;
-    uint8_t expected_seq_bit;
-} rudp_state_t;
 
 int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_in* dest_addr, socklen_t addrlen);
 int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_addr, socklen_t addrlen);
