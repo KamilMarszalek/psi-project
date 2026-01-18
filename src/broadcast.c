@@ -34,10 +34,8 @@ static void apply_accept_if_relevant(ring_state_t* ring_state, const join_accept
     const char* me = ring_state->config.current->node_name;
 
     if (strncmp(me, accept->new_name, MAX_NODE_NAME_SIZE) == 0) {
-        if (strncmp(me, accept->new_name, MAX_NODE_NAME_SIZE) == 0) {
-            if (!ring_state->joined && accept->header.request_id != ring_state->join_request_id) {
-                return;
-            }
+        if (!ring_state->joined && accept->header.request_id != ring_state->join_request_id) {
+            return;
         }
         strncpy(ring_state->config.prev->node_name, accept->prev_name, MAX_NODE_NAME_SIZE - 1);
         ring_state->config.prev->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
@@ -158,7 +156,9 @@ int join_inflight_tick(ring_state_t* ring_state, int broadcast_socket) {
     accept.before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
     accept.prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
 
-    (void) broadcast_send_accept(broadcast_socket, ring_state->config.current->broadcast_port, &accept);
+    if (broadcast_send_accept(broadcast_socket, ring_state->config.current->broadcast_port, &accept) < 0) {
+        return -1;
+    }
 
     ring_state->join_inflight.last_sent = now;
     ring_state->join_inflight.retries++;
@@ -216,6 +216,9 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
     uint32_t magic = ntohl(header.magic);
     uint16_t type = ntohs(header.type);
     uint32_t request_id = ntohl(header.request_id);
+    if (!ring_state->joined && (type == JOIN_REQUEST || type == JOIN_ACK)) {
+        return 0;
+    }
 
     if (magic != JOIN_MAGIC) {
         fprintf(stderr, "Received broadcast message with invalid magic: 0x%X\n", magic);
