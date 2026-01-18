@@ -19,6 +19,7 @@
 #define MAX3(x, y, z) (((x) > (y)) ? (((x) > (z)) ? (x) : (z)) : (((y) > (z)) ? (y) : (z)))
 
 int fill_config_from_env(route_config_t* config);
+int ring_on_token(ring_state_t* state, int unicast_socket);
 
 int ring_initialize(route_config_t* config, descriptors_t* descriptors) {
     if (fill_config_from_env(config) < 0) {
@@ -50,7 +51,9 @@ int ring_initialize(route_config_t* config, descriptors_t* descriptors) {
 int ring_run(route_config_t* config, descriptors_t* descriptors) {
     fd_set rfds;
     struct timeval timeout;
-    join_state_t join_state = {0};
+    ring_state_t state = {0};
+    state.config = config;
+    state.join_state = (join_state_t){0};
     token_t from_unicast = {.is_empty = true};
     token_t from_cli = {.is_empty = true};
     token_pair_t tokens = {.from_unicast = &from_unicast, .from_cli = &from_cli};
@@ -75,8 +78,6 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
         timeout.tv_usec = 0;
 
         int ret = select(maxfd + 1, &rfds, NULL, NULL, &timeout);
-        time_t now = time(NULL);
-        prune_joins(&join_state, now, 15);
         if (ret < 0) {
             if (errno == EINTR) {
                 continue;
@@ -86,24 +87,71 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
         }
 
         if (FD_ISSET(descriptors.broadcast_socket, &rfds)) {
-            if (handle_broadcast(descriptors.broadcast_socket, &join_state) < 0) {
+            if (handle_broadcast(descriptors.broadcast_socket, &state.join_state) < 0) {
                 break;
             }
         }
 
+        time_t now = time(NULL);
+        prune_joins(&state.join_state, now, 15);
+
         if (FD_ISSET(descriptors.cli_fd, &rfds)) {
-            if (cli_handle_read(descriptors.cli_fd, tokens.from_cli) < 0) {
+            if (cli_handle_read(descriptors.cli_fd, &state.cli_pending) < 0) {
                 break;
             }
+            state.have_cli_pending = 1;
         }
 
         if (FD_ISSET(descriptors.unicast_socket, &rfds)) {
-            if (unicast_handle(descriptors.unicast_socket, tokens, config) < 0) {
+            if (unicast_recv(descriptors.unicast_socket, &state.token_in) < 0) {
                 break;
             }
+            state.have_token = 1;
+
+            ring_on_token(&state, descriptors.unicast_socket);
         }
     }
 
+    return 0;
+}
+
+int ring_on_token(ring_state_t* state, int unicast_socket) {
+    token_t out = state->token_in;
+    if (state->join_state.count > 0) {
+        pending_join_t pj;
+        int res = pop_oldest_pending_join(&state->join_state, &pj);
+        if (res == 0) {
+            printf("Processing pending join from node %s\n", pj.node_name);
+            // TODO: join processing logic
+        } else {
+            fprintf(stderr, "Error popping pending join\n");
+        }
+    }
+    if (!out.is_empty) {
+        if (strcmp(out.receiver, state->config.current->node_name) == 0) {
+            printf("Received token for me: %s\n", out.data);
+            out.is_empty = true;
+            memset(out.data, 0, MAX_DATA_SIZE);
+            memset(out.sender, 0, MAX_NODE_NAME_SIZE);
+            memset(out.receiver, 0, MAX_NODE_NAME_SIZE);
+        } else {
+            printf("Full token received for another node - forwarding\n");
+        }
+    }
+    if (state->have_cli_pending && out.is_empty) {
+        printf("Attaching CLI token: %s\n", state->cli_pending.data);
+        out = state->cli_pending;
+        state->have_cli_pending = 0;
+        state->cli_pending.is_empty = true;
+        memset(state->cli_pending.data, 0, MAX_DATA_SIZE);
+        memset(state->cli_pending.sender, 0, MAX_NODE_NAME_SIZE);
+        memset(state->cli_pending.receiver, 0, MAX_NODE_NAME_SIZE);
+    }
+    sleep(1);// simulate processing delay
+    if (unicast_send(unicast_socket, &out, state->config.next) < 0) {
+        return -1;
+    }
+    state->have_token = 0;
     return 0;
 }
 
