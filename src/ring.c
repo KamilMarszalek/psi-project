@@ -60,7 +60,7 @@ static int join_request_tick(ring_state_t* st, int broadcast_socket) {
 
     if (st->join_request_retries >= JOIN_REQUEST_RETRIES) {
         fprintf(stderr, "JOIN_REQUEST retries exhausted (id=%u)\n", st->join_request_id);
-        return 0;
+        return -1;
     }
 
     if (broadcast_send_join_request(
@@ -101,8 +101,8 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
 
     LOG_INFO("Node initalized, waiting for UDP packets");
 
-    if (getenv("SHOULD_START")) {
-        if (unicast_forward_first_token(descriptors->unicast_socket, config->next) < 0) {
+    if (getenv("SHOULD_START") && state.joined) {
+        if (unicast_forward_first_token(descriptors.unicast_socket, config.next) < 0) {
             return -1;
         }
     }
@@ -148,6 +148,11 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
         }
 
         if (FD_ISSET(descriptors.unicast_socket, &rfds)) {
+            if (!state.joined) {
+                token_t tmp;
+                (void) unicast_recv(descriptors.unicast_socket, &tmp);
+                continue;
+            }
             if (unicast_recv(descriptors.unicast_socket, &state.token_in) < 0) {
                 break;
             }
@@ -219,10 +224,14 @@ int fill_config_from_env(route_config_t* config, int joined) {
     char* b_port = getenv("NODE_BROAD_PORT");
 
     if (!joined) {
+        if (!node_name || !uni_port || !b_port) {
+            fprintf(stderr, "Some env variables are missing for unjoined node\n");
+            return -1;
+        }
         strncpy(config->current->node_name, node_name, MAX_NODE_NAME_SIZE - 1);
-        config->current->unicast_port = (uint16_t) atoi(uni_port);
+        config->current->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
         config->current->broadcast_port = (uint16_t) atoi(b_port);
-        return 0;
+        config->current->unicast_port = (uint16_t) atoi(uni_port);
     }
 
     char* prev_node_name = getenv("PREV_NODE_NAME");
