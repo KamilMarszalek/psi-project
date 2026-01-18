@@ -10,14 +10,13 @@
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
-#include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
 
-int receive_token(int unicast_socket, token_t* token);
-int forward_token(int unicast_socket, token_t* token, route_t* next);
+static int receive_token(int unicast_socket, token_t* token);
+static int forward_token(int unicast_socket, token_t* token, route_t* next);
 
 int unicast_setup_socket(route_t* current) {
     int sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
@@ -70,12 +69,12 @@ int unicast_handle(int unicast_socket, token_pair_t tokens, route_config_t confi
         }
 
     } else if (tokens.from_unicast->is_empty) {
-        LOG_INFO("Received empty token");
+        LOG_INFO("Forwarding empty token");
         if (!tokens.from_cli->is_empty) {
             token_to_send = *tokens.from_cli;
             memset(tokens.from_cli, 0, sizeof(token_t));
             tokens.from_cli->is_empty = true;
-            LOG_INFO("Filled token with data: receiver=%s; data=%s\n", token_to_send.reciever, token_to_send.data);
+            LOG_INFO("Filled token with data (receiver=%s; data=%s)", token_to_send.reciever, token_to_send.data);
         }
     }
 
@@ -87,13 +86,13 @@ int unicast_handle(int unicast_socket, token_pair_t tokens, route_config_t confi
     return 0;
 }
 
-int receive_token(int unicast_sock, token_t* token) {
+static int receive_token(int unicast_sock, token_t* token) {
     struct sockaddr_in prev_node_addr;
     socklen_t length = sizeof(prev_node_addr);
     return rudp_recvfrom(unicast_sock, token, sizeof(token_t), &prev_node_addr, length);
 }
 
-int forward_token(int unicast_sock, token_t* token, route_t* next) {
+static int forward_token(int unicast_sock, token_t* token, route_t* next) {
     struct sockaddr_in next_node_addr = {
         .sin_family = AF_INET,
         .sin_port = htons(next->port),
@@ -112,7 +111,7 @@ int forward_token(int unicast_sock, token_t* token, route_t* next) {
 
         int err = getaddrinfo(next->node_name, NULL, &hints, &addr_res);
         if (err != 0) {
-            LOG_ERROR("DNS lookup failed for: %s: %s\n", next->node_name, gai_strerror(err));
+            LOG_ERROR("DNS lookup failed for: %s: %s", next->node_name, gai_strerror(err));
             return -1;
         }
 
