@@ -34,14 +34,13 @@ int broadcast_setup_socket(const route_t* current) {
     return sock_fd;
 }
 
-int handle_broadcast(int broadcast_socket) {
+int handle_broadcast(int broadcast_socket, join_state_t* join_state) {
     join_request_t join_request;
     struct sockaddr_in from = {0};
     socklen_t from_len = sizeof(from);
 
     ssize_t n_recv =
         recvfrom(broadcast_socket, &join_request, sizeof(join_request), 0, (struct sockaddr*) &from, &from_len);
-
     if (n_recv < 0) {
         perror("receiving broadcast message");
         return -1;
@@ -51,17 +50,31 @@ int handle_broadcast(int broadcast_socket) {
         fprintf(stderr, "Received invalid broadcast message size: %zd\n", n_recv);
         return -1;
     }
+    join_request.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+
 
     if (join_request.magic != JOIN_MAGIC) {
         fprintf(stderr, "Received invalid broadcast message magic: 0x%X\n", join_request.magic);
         return -1;
     }
 
+
     char ipbuf[INET_ADDRSTRLEN];
     if (inet_ntop(AF_INET, &from.sin_addr, ipbuf, sizeof(ipbuf)) == NULL) {
         perror("converting sender address to string");
         return -1;
     }
-    printf("Received join request from node %s at %s:%d\n", join_request.node_name, ipbuf, ntohs(from.sin_port));
+    int rc = add_pending_join(join_state, &join_request, from.sin_addr);
+    if (rc == 0) {
+        printf(
+            "JOIN_REQUEST id=%u name=%s uni=%u from=%s\n", join_request.request_id, join_request.node_name,
+            join_request.unicast_port, ipbuf
+        );
+    } else {
+        fprintf(
+            stderr, "JOIN_REQUEST dropped (queue full?) id=%u name=%s uni=%u from=%s\n", join_request.request_id,
+            join_request.node_name, join_request.unicast_port, ipbuf
+        );
+    }
     return 0;
 }

@@ -1,8 +1,10 @@
 #ifndef JOIN_H
 #define JOIN_H
-
 #include "consts.h"
+#include <netinet/in.h>
+#include <stddef.h>
 #include <stdint.h>
+#include <time.h>
 
 typedef struct {
     uint32_t magic;//0xAAAABBBB
