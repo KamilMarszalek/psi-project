@@ -2,9 +2,10 @@
 #define BROADCAST_H
 
 #include "join.h"
+#include "ring.h"
 #include "route.h"
 
 int broadcast_setup_socket(const route_t* current);
-int handle_broadcast(int broadcast_socket, join_state_t* join_state);
+int handle_broadcast(int broadcast_socket, ring_state_t* ring_state);
 
 #endif
