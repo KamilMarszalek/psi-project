@@ -26,8 +26,7 @@ static int send_to_all_targets(int sock, const void* msg, size_t len, const broa
 }
 
 
-static int
-broadcast_send_ack(int broadcast_socket, uint16_t broadcast_port, uint32_t request_id_host, const char* from_name) {
+static int broadcast_send_ack(int broadcast_socket, uint32_t request_id_host, const char* from_name) {
     join_ack_t ack = {0};
     ack.header.magic = htonl(JOIN_MAGIC);
     ack.header.type = htons(JOIN_ACK);
@@ -108,7 +107,7 @@ static void handle_ack_inflight(ring_state_t* ring_state, const join_ack_t* ack_
     }
 }
 
-static int broadcast_send_accept(int broadcast_socket, uint16_t broadcast_port, const join_accept_t* accept) {
+static int broadcast_send_accept(int broadcast_socket, const join_accept_t* accept) {
     join_accept_t acc = {0};
     acc.header.magic = htonl(JOIN_MAGIC);
     acc.header.type = htons(JOIN_ACCEPT);
@@ -164,7 +163,7 @@ int join_inflight_tick(ring_state_t* ring_state, int broadcast_socket) {
     accept.before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
     accept.prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
 
-    if (broadcast_send_accept(broadcast_socket, ring_state->config.current->broadcast_port, &accept) < 0) {
+    if (broadcast_send_accept(broadcast_socket, &accept) < 0) {
         return -1;
     }
 
@@ -323,10 +322,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             int did_apply = 0;
             apply_accept_if_relevant(ring_state, &accept_host, &did_apply);
             if (did_apply) {
-                (void) broadcast_send_ack(
-                    broadcast_socket, ring_state->config.current->broadcast_port, request_id,
-                    ring_state->config.current->node_name
-                );
+                (void) broadcast_send_ack(broadcast_socket, request_id, ring_state->config.current->node_name);
             }
             return 0;
         }
@@ -361,7 +357,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
 }
 
 int broadcast_send_join_request(
-    int broadcast_socket, uint16_t broadcast_port, uint32_t request_id, const char* node_name, uint16_t unicast_port
+    int broadcast_socket, uint32_t request_id, const char* node_name, uint16_t unicast_port
 ) {
     join_request_t request = {0};
     request.header.magic = htonl(JOIN_MAGIC);

@@ -1,5 +1,6 @@
 #include "broadcast_targets.h"
 #include "logger.h"
+#include <string.h>
 
 
 static int sockaddr_in_is_valid(const struct sockaddr* addr) {

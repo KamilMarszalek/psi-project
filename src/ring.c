@@ -66,8 +66,7 @@ static int join_request_tick(ring_state_t* st, int broadcast_socket) {
     }
 
     if (broadcast_send_join_request(
-            broadcast_socket, st->config.current->broadcast_port, st->join_request_id, st->config.current->node_name,
-            st->config.current->unicast_port
+            broadcast_socket, st->join_request_id, st->config.current->node_name, st->config.current->unicast_port
         ) < 0) {
         LOG_ERROR("Failed to send JOIN_REQUEST\n");
         return -1;
