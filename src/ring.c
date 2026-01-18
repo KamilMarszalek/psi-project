@@ -87,7 +87,7 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
         }
 
         if (FD_ISSET(descriptors.broadcast_socket, &rfds)) {
-            if (handle_broadcast(descriptors.broadcast_socket, &state.join_state) < 0) {
+            if (handle_broadcast(descriptors.broadcast_socket, &state) < 0) {
                 break;
             }
         }
