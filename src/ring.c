@@ -115,18 +115,30 @@ int ring_run(route_config_t* config, descriptors_t* descriptors) {
     return 0;
 }
 
+static void start_join_inflight(ring_state_t* state, pending_join_t* pj) {
+    state->join_inflight.active = 1;
+    state->join_inflight.request_id = pj->request_id;
+    state->join_inflight.joiner = *pj;
+
+    strncpy(state->join_inflight.expected_prev_name, state->config.prev->node_name, MAX_NODE_NAME_SIZE - 1);
+    state->join_inflight.expected_prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+
+    state->join_inflight.got_ack_prev = 0;
+    state->join_inflight.got_ack_joiner = 0;
+
+    state->join_inflight.last_sent = 0;
+    state->join_inflight.retries = 0;
+}
+
 int ring_on_token(ring_state_t* state, int unicast_socket) {
     token_t out = state->token_in;
-    if (state->join_state.count > 0) {
+    if (!state->join_inflight.active && state->join_state.count > 0) {
         pending_join_t pj;
-        int res = pop_oldest_pending_join(&state->join_state, &pj);
-        if (res == 0) {
-            printf("Processing pending join from node %s\n", pj.node_name);
-            // TODO: join processing logic
-        } else {
-            fprintf(stderr, "Error popping pending join\n");
+        if (pop_oldest_pending_join(&state->join_state, &pj) == 0) {
+            start_join_inflight(state, &pj);
         }
     }
+    if (state->join_inflight.active) {}
     if (!out.is_empty) {
         if (strcmp(out.receiver, state->config.current->node_name) == 0) {
             printf("Received token for me: %s\n", out.data);
