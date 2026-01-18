@@ -20,6 +20,8 @@ static int send_to_all_targets(int sock, const void* msg, size_t len, const broa
             ok = 1;
         }
     }
+    if (n == 0)
+        return -1;
     return ok ? 0 : -1;
 }
 
@@ -32,11 +34,6 @@ broadcast_send_ack(int broadcast_socket, uint16_t broadcast_port, uint32_t reque
     ack.header.request_id = htonl(request_id_host);
     strncpy(ack.from_name, from_name, MAX_NODE_NAME_SIZE - 1);
     ack.from_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-
-    struct sockaddr_in destination = {0};
-    destination.sin_family = AF_INET;
-    destination.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-    destination.sin_port = htons(broadcast_port);
 
     if (send_to_all_targets(broadcast_socket, &ack, sizeof(ack), targets, targets_count) < 0) {
         LOG_ERROR("sending join ack");
@@ -129,11 +126,6 @@ static int broadcast_send_accept(int broadcast_socket, uint16_t broadcast_port, 
     acc.before_unicast_port = htons(accept->before_unicast_port);
     acc.prev_unicast_port = htons(accept->prev_unicast_port);
 
-    struct sockaddr_in destination = {0};
-    destination.sin_family = AF_INET;
-    destination.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-    destination.sin_port = htons(broadcast_port);
-
     if (send_to_all_targets(broadcast_socket, &acc, sizeof(acc), targets, targets_count) < 0) {
         LOG_ERROR("sending join accept");
         return -1;
@@ -214,7 +206,15 @@ int broadcast_setup_socket(const route_t* current) {
         close(sock_fd);
         return -1;
     }
-    targets_count = broadcast_collect_targets(current->broadcast_port, targets, 16);
+    int n = broadcast_collect_targets(current->broadcast_port, targets, sizeof(targets) / sizeof(targets[0]));
+    if (n < 0) {
+        close(sock_fd);
+        return -1;
+    }
+    targets_count = (size_t) n;
+    if (targets_count == 0) {
+        LOG_WARN("No broadcast targets found");
+    }
     return sock_fd;
 }
 
@@ -370,11 +370,6 @@ int broadcast_send_join_request(
     strncpy(request.node_name, node_name, MAX_NODE_NAME_SIZE - 1);
     request.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
     request.unicast_port = htons(unicast_port);
-
-    struct sockaddr_in destination = {0};
-    destination.sin_family = AF_INET;
-    destination.sin_addr.s_addr = htonl(INADDR_BROADCAST);
-    destination.sin_port = htons(broadcast_port);
 
     if (send_to_all_targets(broadcast_socket, &request, sizeof(request), targets, targets_count) < 0) {
         LOG_ERROR("sending join request");
