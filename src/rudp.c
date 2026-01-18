@@ -18,7 +18,7 @@
 #define ACK_TIMEOUT_USEC 100000
 #define ACK_ACK_DELAY_USEC 250000
 
-static int wait_for_packet(int socket, header_t* header, int timeout_us);
+static int wait_for_packet(int socket, frame_t* frame, int len, int timeout_us);
 static int drain_socket(int socket);
 
 typedef struct {
@@ -47,15 +47,15 @@ int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_i
 
     int ack_received = 0;
     int attempts = 0;
-    while (!ack_received && attempts < MAX_TRANSMISION_ATTEMPTS) {
+    while (!ack_received) {
         if (sendto(socket, frame, total_size, 0, (struct sockaddr*) dest_addr, addrlen) < 0) {
             LOG_ERROR("Sending UDP frame: %s", strerror(errno));
             free(frame);
             return -1;
         }
 
-        header_t ack_frame;
-        int ack_result = wait_for_packet(socket, &ack_frame, ACK_TIMEOUT_USEC);
+        frame_t ack_frame;
+        int ack_result = wait_for_packet(socket, &ack_frame, sizeof(header_t), ACK_TIMEOUT_USEC);
         if (ack_result < 0) {
             free(frame);
             return -1;
@@ -67,26 +67,22 @@ int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_i
             continue;
         }
 
-        if (ack_frame.frame_type == ACK && ack_frame.seq_bit == state.send_seq_bit) {
+        if (ack_frame.header.frame_type == ACK && ack_frame.header.seq_bit == state.send_seq_bit) {
             LOG_DEBUG("Received appropriate ACK(%u)", state.send_seq_bit);
             ack_received = 1;
         } else {
             LOG_DEBUG(
-                "Received unknown package (type=%d, seq=%u) while waiting for ACK(%u)", ack_frame.frame_type,
-                ack_frame.seq_bit, state.send_seq_bit
+                "Received unknown package (type=%d, seq=%u) while waiting for ACK(%u)", ack_frame.header.frame_type,
+                ack_frame.header.seq_bit, state.send_seq_bit
             );
         }
     }
 
     free(frame);
 
-    if (ack_received == 0) {
-        LOG_WARN("Failed to transfer token after %d attemps - token might be lost!", attempts);
-    }
-
     for (int i = 0; i < MAX_TRANSMISION_ATTEMPTS; i++) {
-        header_t ack_ack_frame = {.frame_type = ACK_ACK, .seq_bit = state.send_seq_bit};
-        if (sendto(socket, &ack_ack_frame, sizeof(header_t), 0, (struct sockaddr*) dest_addr, addrlen) < 0) {
+        frame_t ack_ack_frame = {.header = {.frame_type = ACK_ACK, .seq_bit = state.send_seq_bit}};
+        if (sendto(socket, &ack_ack_frame, sizeof(ack_ack_frame), 0, (struct sockaddr*) dest_addr, addrlen) < 0) {
             LOG_ERROR("Sending ACK_ACK: %s", strerror(errno));
             return -1;
         }
@@ -124,36 +120,42 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
     free(message_frame);
 
     int ack_ack_received = 0;
-    int attemps = 0;
-    while (!ack_ack_received && attemps < MAX_TRANSMISION_ATTEMPTS) {
+    int attempts = 0;
+    while (!ack_ack_received && attempts < MAX_TRANSMISION_ATTEMPTS) {
         header_t ack_frame = {.frame_type = ACK, .seq_bit = state.expected_seq_bit};
         if (sendto(socket, &ack_frame, sizeof(header_t), 0, (struct sockaddr*) source_addr, addrlen) < 0) {
             LOG_ERROR("Sending ACK(%u): %s", ack_frame.seq_bit, strerror(errno));
-            perror("sending ACK");
             return -1;
         }
 
-        header_t ack_ack_frame;
-        int ack_ack_result = wait_for_packet(socket, &ack_ack_frame, TIMEOUT_USEC);
+        frame_t ack_ack_frame;
+        int ack_ack_result = wait_for_packet(socket, &ack_ack_frame, sizeof(header_t), TIMEOUT_USEC);
         if (ack_ack_result < 0) {
             return -1;
         }
 
         if (ack_ack_result == 0) {
-            attemps++;
+            attempts++;
             LOG_DEBUG(
-                "Timeout waiting for ACK_ACK(%u), resending message (retry number %d)", state.send_seq_bit, attemps
+                "Timeout waiting for ACK_ACK(%u), resending message (retry number %d)", state.send_seq_bit, attempts
             );
             continue;
         }
 
-        if (ack_ack_frame.frame_type == ACK_ACK && ack_ack_frame.seq_bit == state.expected_seq_bit) {
+        if (ack_ack_frame.header.frame_type == ACK_ACK && ack_ack_frame.header.seq_bit == state.expected_seq_bit) {
             LOG_DEBUG("Received appropriate ACK_ACK(%u)", state.expected_seq_bit);
             ack_ack_received = 1;
+        } else if (ack_ack_frame.header.frame_type == MESSAGE &&
+                   ack_ack_frame.header.seq_bit == state.expected_seq_bit) {
+            LOG_DEBUG(
+                "Received message(%u) once again, resending ACK(%u)", state.expected_seq_bit, state.expected_seq_bit
+            );
+            attempts = 0;
+            continue;
         } else {
             LOG_DEBUG(
-                "Received unknown package (type=%d, seq=%u) while waiting for ACK_ACK(%u)", ack_ack_frame.frame_type,
-                ack_ack_frame.seq_bit, state.expected_seq_bit
+                "Received unknown package (type=%d, seq=%u) while waiting for ACK_ACK(%u)",
+                ack_ack_frame.header.frame_type, ack_ack_frame.header.seq_bit, state.expected_seq_bit
             );
         }
     }
@@ -168,7 +170,7 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
 }
 
 
-static int wait_for_packet(int socket, header_t* header, int timeout_us) {
+static int wait_for_packet(int socket, frame_t* frame, int len, int timeout_us) {
     fd_set rfds;
 
     FD_ZERO(&rfds);
@@ -186,7 +188,7 @@ static int wait_for_packet(int socket, header_t* header, int timeout_us) {
     }
 
     if (FD_ISSET(socket, &rfds)) {
-        if (recvfrom(socket, header, sizeof(header_t), 0, NULL, NULL) < 0) {
+        if (recvfrom(socket, frame, len, 0, NULL, NULL) < 0) {
             return -1;
         }
         return 1;
