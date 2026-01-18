@@ -59,7 +59,7 @@ static int join_request_tick(ring_state_t* st, int broadcast_socket) {
     }
 
     if (st->join_request_retries >= JOIN_REQUEST_RETRIES) {
-        fprintf(stderr, "JOIN_REQUEST retries exhausted (id=%u)\n", st->join_request_id);
+        LOG_ERROR("JOIN_REQUEST retries exhausted (id=%u)\n", st->join_request_id);
         return -1;
     }
 
@@ -67,6 +67,7 @@ static int join_request_tick(ring_state_t* st, int broadcast_socket) {
             broadcast_socket, st->config.current->broadcast_port, st->join_request_id, st->config.current->node_name,
             st->config.current->unicast_port
         ) < 0) {
+        LOG_ERROR("Failed to send JOIN_REQUEST\n");
         return -1;
     }
 
@@ -93,9 +94,6 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
         }
     }
     state.join_state = (join_state_t){0};
-    token_t from_unicast = {.is_empty = true};
-    token_t from_cli = {.is_empty = true};
-    token_pair_t tokens = {.from_unicast = &from_unicast, .from_cli = &from_cli};
 
     int maxfd = MAX3(descriptors.unicast_socket, descriptors.broadcast_socket, descriptors.cli_fd);
 
@@ -192,17 +190,17 @@ int ring_on_token(ring_state_t* state, int unicast_socket) {
     if (state->join_inflight.active) {}
     if (!out.is_empty) {
         if (strcmp(out.receiver, state->config.current->node_name) == 0) {
-            printf("Received token for me: %s\n", out.data);
+            LOG_INFO("Received token for me: %s\n", out.data);
             out.is_empty = true;
             memset(out.data, 0, MAX_DATA_SIZE);
             memset(out.sender, 0, MAX_NODE_NAME_SIZE);
             memset(out.receiver, 0, MAX_NODE_NAME_SIZE);
         } else {
-            printf("Full token received for another node - forwarding\n");
+            LOG_INFO("Full token received for another node - forwarding\n");
         }
     }
     if (state->have_cli_pending && out.is_empty) {
-        printf("Attaching CLI token: %s\n", state->cli_pending.data);
+        LOG_INFO("Attaching CLI token: %s\n", state->cli_pending.data);
         out = state->cli_pending;
         state->have_cli_pending = 0;
         state->cli_pending.is_empty = true;
@@ -210,7 +208,7 @@ int ring_on_token(ring_state_t* state, int unicast_socket) {
         memset(state->cli_pending.sender, 0, MAX_NODE_NAME_SIZE);
         memset(state->cli_pending.receiver, 0, MAX_NODE_NAME_SIZE);
     }
-    sleep(1);// simulate processing delay
+    sleep(1); // simulate processing delay
     if (unicast_send(unicast_socket, &out, state->config.next) < 0) {
         return -1;
     }
@@ -226,7 +224,7 @@ int fill_config_from_env(route_config_t* config, int joined) {
 
     if (!joined) {
         if (!node_name || !uni_port || !b_port) {
-            fprintf(stderr, "Some env variables are missing for unjoined node\n");
+            LOG_ERROR("Some env variables are missing for unjoined node\n");
             return -1;
         }
         strncpy(config->current->node_name, node_name, MAX_NODE_NAME_SIZE - 1);

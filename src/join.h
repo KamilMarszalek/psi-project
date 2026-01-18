@@ -14,7 +14,7 @@ typedef enum {
 
 
 typedef struct {
-    uint32_t magic;//0xAAAABBBB
+    uint32_t magic; //0xAAAABBBB
     uint16_t type;
     uint16_t reserved;
     uint32_t request_id;

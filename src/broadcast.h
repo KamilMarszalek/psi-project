@@ -4,6 +4,7 @@
 #include "join.h"
 #include "ring.h"
 #include "route.h"
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <stdint.h>
 #include <stdio.h>
