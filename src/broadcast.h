@@ -8,5 +8,8 @@
 int broadcast_setup_socket(const route_t* current);
 int handle_broadcast(int broadcast_socket, ring_state_t* ring_state);
 int join_inflight_tick(ring_state_t* ring_state, int broadcast_socket);
+int broadcast_send_join_request(
+    int broadcast_socket, uint16_t broadcast_port, uint32_t request_id, const char* node_name, uint16_t unicast_port
+);
 
 #endif

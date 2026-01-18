@@ -34,6 +34,11 @@ static void apply_accept_if_relevant(ring_state_t* ring_state, const join_accept
     const char* me = ring_state->config.current->node_name;
 
     if (strncmp(me, accept->new_name, MAX_NODE_NAME_SIZE) == 0) {
+        if (strncmp(me, accept->new_name, MAX_NODE_NAME_SIZE) == 0) {
+            if (!ring_state->joined && accept->header.request_id != ring_state->join_request_id) {
+                return;
+            }
+        }
         strncpy(ring_state->config.prev->node_name, accept->prev_name, MAX_NODE_NAME_SIZE - 1);
         ring_state->config.prev->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
         ring_state->config.prev->unicast_port = accept->prev_unicast_port;
@@ -41,7 +46,9 @@ static void apply_accept_if_relevant(ring_state_t* ring_state, const join_accept
         strncpy(ring_state->config.next->node_name, accept->before_name, MAX_NODE_NAME_SIZE - 1);
         ring_state->config.next->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
         ring_state->config.next->unicast_port = accept->before_unicast_port;
-
+        ring_state->joined = 1;
+        ring_state->join_request_last_sent = 0;
+        ring_state->join_request_retries = 0;
         *did_apply = 1;
         return;
     }
@@ -53,7 +60,7 @@ static void apply_accept_if_relevant(ring_state_t* ring_state, const join_accept
         strncpy(ring_state->config.next->node_name, accept->new_name, MAX_NODE_NAME_SIZE - 1);
         ring_state->config.next->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
         ring_state->config.next->unicast_port = accept->new_unicast_port;
-
+        ring_state->joined = 1;
         *did_apply = 1;
         return;
     }
@@ -323,4 +330,28 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             fprintf(stderr, "Received broadcast message with unknown type: %u\n", type);
             return 0;
     }
+}
+
+int broadcast_send_join_request(
+    int broadcast_socket, uint16_t broadcast_port, uint32_t request_id, const char* node_name, uint16_t unicast_port
+) {
+    join_request_t request = {0};
+    request.header.magic = htonl(JOIN_MAGIC);
+    request.header.type = htons(JOIN_REQUEST);
+    request.header.request_id = htonl(request_id);
+    strncpy(request.node_name, node_name, MAX_NODE_NAME_SIZE - 1);
+    request.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    request.unicast_port = htons(unicast_port);
+
+    struct sockaddr_in destination = {0};
+    destination.sin_family = AF_INET;
+    destination.sin_addr.s_addr = htonl(INADDR_BROADCAST);
+    destination.sin_port = htons(broadcast_port);
+
+    if (sendto(broadcast_socket, &request, sizeof(request), 0, (struct sockaddr*) &destination, sizeof(destination)) <
+        0) {
+        perror("sending join request");
+        return -1;
+    }
+    return 0;
 }

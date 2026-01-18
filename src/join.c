@@ -10,7 +10,7 @@ int add_pending_join(join_state_t* state, const join_request_t* request, struct 
 
     for (size_t i = 0; i < MAX_PENDING_JOINS; i++) {
         if (state->joins[i].used && strncmp(state->joins[i].node_name, request->node_name, MAX_NODE_NAME_SIZE) == 0) {
-            state->joins[i].request_id = request->request_id;
+            state->joins[i].request_id = request->header.request_id;
             state->joins[i].last_seen = time(NULL);
             state->joins[i].ip = ip;
             state->joins[i].unicast_port = request->unicast_port;
@@ -18,7 +18,7 @@ int add_pending_join(join_state_t* state, const join_request_t* request, struct 
         }
         if (!state->joins[i].used) {
             state->joins[i].used = 1;
-            state->joins[i].request_id = request->request_id;
+            state->joins[i].request_id = request->header.request_id;
             strncpy(state->joins[i].node_name, request->node_name, MAX_NODE_NAME_SIZE - 1);
             state->joins[i].node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
             state->joins[i].unicast_port = request->unicast_port;
