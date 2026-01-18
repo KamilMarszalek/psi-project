@@ -1,6 +1,7 @@
 #include "broadcast.h"
 #include "consts.h"
 #include "join.h"
+#include "logger.h"
 
 
 #define JOIN_MAX_MSG_SIZE (sizeof(join_accept_t))
@@ -20,7 +21,7 @@ broadcast_send_ack(int broadcast_socket, uint16_t broadcast_port, uint32_t reque
     destination.sin_port = htons(broadcast_port);
 
     if (sendto(broadcast_socket, &ack, sizeof(ack), 0, (struct sockaddr*) &destination, sizeof(destination)) < 0) {
-        perror("sending join ack");
+        LOG_ERROR("sending join ack");
         return -1;
     }
     return 0;
@@ -116,7 +117,7 @@ static int broadcast_send_accept(int broadcast_socket, uint16_t broadcast_port, 
     destination.sin_port = htons(broadcast_port);
 
     if (sendto(broadcast_socket, &acc, sizeof(acc), 0, (struct sockaddr*) &destination, sizeof(destination)) < 0) {
-        perror("sending join accept");
+        LOG_ERROR("sending join accept");
         return -1;
     }
     return 0;
@@ -133,7 +134,7 @@ int join_inflight_tick(ring_state_t* ring_state, int broadcast_socket) {
     }
 
     if (ring_state->join_inflight.retries >= JOIN_ACCEPT_RETRIES) {
-        fprintf(stderr, "Join accept retries exhausted for request id %u\n", ring_state->join_inflight.request_id);
+        LOG_ERROR("Join accept retries exhausted for request id %u", ring_state->join_inflight.request_id);
         ring_state->join_inflight.active = 0;
         return 0;
     }
@@ -166,20 +167,20 @@ int join_inflight_tick(ring_state_t* ring_state, int broadcast_socket) {
 int broadcast_setup_socket(const route_t* current) {
     int sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock_fd == -1) {
-        perror("opening broadcast socket");
+        LOG_ERROR("opening broadcast socket");
         return -1;
     }
 
     int broadcast_enable = 1;
     int reuse_enable = 1;
     if (setsockopt(sock_fd, SOL_SOCKET, SO_BROADCAST, &broadcast_enable, sizeof(broadcast_enable)) < 0) {
-        perror("setting broadcast option");
+        LOG_ERROR("setting broadcast option");
         close(sock_fd);
         return -1;
     }
 
     if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &reuse_enable, sizeof(reuse_enable)) < 0) {
-        perror("setting reuse address option");
+        LOG_ERROR("setting reuse address option");
         close(sock_fd);
         return -1;
     }
@@ -191,7 +192,7 @@ int broadcast_setup_socket(const route_t* current) {
     };
     socklen_t length = sizeof(host_addr);
     if (bind(sock_fd, (struct sockaddr*) &host_addr, length) < 0) {
-        perror("binding broadcast socket");
+        LOG_ERROR("binding broadcast socket");
         close(sock_fd);
         return -1;
     }
@@ -205,12 +206,12 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
 
     ssize_t n_recv = recvfrom(broadcast_socket, buffer, sizeof(buffer), 0, (struct sockaddr*) &from, &from_len);
     if (n_recv < 0) {
-        perror("receiving broadcast message");
+        LOG_ERROR("receiving broadcast message");
         return -1;
     }
 
     if ((size_t) n_recv < sizeof(join_message_header_t)) {
-        fprintf(stderr, "Received too small broadcast message\n");
+        LOG_ERROR("Received too small broadcast message");
         return 0;
     }
 
@@ -222,7 +223,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
     uint32_t request_id = ntohl(header.request_id);
 
     if (magic != JOIN_MAGIC) {
-        fprintf(stderr, "Received broadcast message with invalid magic: 0x%X\n", magic);
+        LOG_ERROR("Received broadcast message with invalid magic: 0x%X", magic);
         return 0;
     }
 
@@ -239,7 +240,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
     switch (type) {
         case JOIN_REQUEST: {
             if ((size_t) n_recv != sizeof(join_request_t)) {
-                fprintf(stderr, "Received invalid join request size: %zd\n", n_recv);
+                LOG_ERROR("Received invalid join request size: %zd", n_recv);
                 return 0;
             }
 
@@ -249,7 +250,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             join_request.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
 
             if (strncmp(join_request.node_name, ring_state->config.current->node_name, MAX_NODE_NAME_SIZE) == 0) {
-                printf("Received join request from self, ignoring\n");
+                LOG_INFO("Received join request from self, ignoring");
                 return 0;
             }
 
@@ -264,19 +265,19 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
 
             int rc = add_pending_join(&ring_state->join_state, &request_host, from.sin_addr);
             if (rc == 0) {
-                printf(
-                    "JOIN_REQUEST id=%u name=%s uni=%u from=%s\n", request_host.header.request_id,
+                LOG_INFO(
+                    "JOIN_REQUEST id=%u name=%s uni=%u from=%s", request_host.header.request_id,
                     request_host.node_name, request_host.unicast_port, ipbuf
                 );
             } else {
-                fprintf(stderr, "Failed to add pending join from %s\n", join_request.node_name);
+                LOG_ERROR("Failed to add pending join from %s", join_request.node_name);
             }
             return 0;
         }
 
         case JOIN_ACCEPT: {
             if ((size_t) n_recv != sizeof(join_accept_t)) {
-                fprintf(stderr, "Received invalid join accept size: %zd\n", n_recv);
+                LOG_ERROR("Received invalid join accept size: %zd", n_recv);
                 return 0;
             }
 
@@ -313,7 +314,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
 
         case JOIN_ACK: {
             if ((size_t) n_recv != sizeof(join_ack_t)) {
-                fprintf(stderr, "Received invalid join ack size: %zd\n", n_recv);
+                LOG_ERROR("Received invalid join ack size: %zd", n_recv);
                 return 0;
             }
 
@@ -335,7 +336,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
         }
 
         default:
-            fprintf(stderr, "Received broadcast message with unknown type: %u\n", type);
+            LOG_ERROR("Received broadcast message with unknown type: %u", type);
             return 0;
     }
 }
@@ -358,7 +359,7 @@ int broadcast_send_join_request(
 
     if (sendto(broadcast_socket, &request, sizeof(request), 0, (struct sockaddr*) &destination, sizeof(destination)) <
         0) {
-        perror("sending join request");
+        LOG_ERROR("sending join request");
         return -1;
     }
     return 0;

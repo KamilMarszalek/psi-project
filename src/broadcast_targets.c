@@ -1,4 +1,5 @@
 #include "broadcast_targets.h"
+#include "logger.h"
 
 
 static int sockaddr_in_is_valid(const struct sockaddr* addr) {
@@ -14,7 +15,7 @@ static struct in_addr compute_broadcast(struct in_addr ip, struct in_addr netmas
 int broadcast_collect_targets(uint16_t port, broadcast_targets_t* out, size_t out_cap) {
     struct ifaddrs* ifas;
     if (getifaddrs(&ifas) != 0) {
-        perror("getting network interfaces");
+        LOG_ERROR("getting network interfaces");
         return -1;
     }
 
