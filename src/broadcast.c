@@ -1,10 +1,7 @@
 #include "broadcast.h"
 #include "consts.h"
 #include "join.h"
-#include <netinet/in.h>
-#include <stdio.h>
-#include <sys/socket.h>
-#include <unistd.h>
+
 
 #define JOIN_MAX_MSG_SIZE (sizeof(join_accept_t))
 

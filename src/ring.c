@@ -102,7 +102,8 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
     LOG_INFO("Node initalized, waiting for UDP packets");
 
     if (getenv("SHOULD_START") && state.joined) {
-        if (unicast_forward_first_token(descriptors.unicast_socket, config.next) < 0) {
+        token_t token = {.is_empty = true};
+        if (unicast_send(descriptors.unicast_socket, &token, config.next) < 0) {
             return -1;
         }
     }

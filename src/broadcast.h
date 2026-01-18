@@ -4,6 +4,12 @@
 #include "join.h"
 #include "ring.h"
 #include "route.h"
+#include <netinet/in.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <string.h>
+#include <sys/socket.h>
+#include <unistd.h>
 
 int broadcast_setup_socket(const route_t* current);
 int handle_broadcast(int broadcast_socket, ring_state_t* ring_state);
