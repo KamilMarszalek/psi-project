@@ -9,6 +9,7 @@
 #include "unicast.h"
 
 #include <errno.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,28 +40,26 @@ int ring_initalize(route_config_t* config, descriptors_t* descriptors) {
     return 0;
 }
 
-int ring_run(route_config_t config, descriptors_t descriptors) {
+int ring_run(route_config_t* config, descriptors_t* descriptors) {
     fd_set rfds;
     token_t from_unicast = {.is_empty = true};
     token_t from_cli = {.is_empty = true};
     token_pair_t tokens = {.from_unicast = &from_unicast, .from_cli = &from_cli};
 
-    int maxfd = MAX(descriptors.unicast_socket, descriptors.cli_fd);
+    int maxfd = MAX(descriptors->unicast_socket, descriptors->cli_fd);
 
     LOG_INFO("Node initalized, waiting for UDP packets");
 
     if (getenv("SHOULD_START")) {
-        if (unicast_forward_first_token(descriptors.unicast_socket, config.next) < 0) {
+        if (unicast_forward_first_token(descriptors->unicast_socket, config->next) < 0) {
             return -1;
         }
     }
 
     while (1) {
-        fflush(stdout);
-
         FD_ZERO(&rfds);
-        FD_SET(descriptors.unicast_socket, &rfds);
-        FD_SET(descriptors.cli_fd, &rfds);
+        FD_SET(descriptors->unicast_socket, &rfds);
+        FD_SET(descriptors->cli_fd, &rfds);
 
         int ret = select(maxfd + 1, &rfds, NULL, NULL, NULL);
         if (ret < 0) {
@@ -73,14 +72,14 @@ int ring_run(route_config_t config, descriptors_t descriptors) {
 
         // TODO: add broadcast handling
 
-        if (FD_ISSET(descriptors.cli_fd, &rfds)) {
-            if (cli_handle_read(descriptors.cli_fd, tokens.from_cli) < 0) {
+        if (FD_ISSET(descriptors->cli_fd, &rfds)) {
+            if (cli_handle_read(descriptors->cli_fd, &from_cli) < 0) {
                 return -1;
             }
         }
 
-        if (FD_ISSET(descriptors.unicast_socket, &rfds)) {
-            if (unicast_handle(descriptors.unicast_socket, tokens, config) < 0) {
+        if (FD_ISSET(descriptors->unicast_socket, &rfds)) {
+            if (unicast_handle(descriptors->unicast_socket, &tokens, config) < 0) {
                 return -1;
             }
         }

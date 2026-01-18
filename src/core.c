@@ -19,7 +19,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    if (ring_run(config, descriptors) < 0) {
+    if (ring_run(&config, &descriptors) < 0) {
         exit(EXIT_FAILURE);
     }
 
