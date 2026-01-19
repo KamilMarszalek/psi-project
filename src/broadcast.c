@@ -25,6 +25,26 @@ static int send_to_all_targets(int sock, const void* msg, size_t len, const broa
     return ok ? 0 : -1;
 }
 
+static int should_ack_accept(const ring_state_t* st, const join_accept_t* acc) {
+    const char* me = st->config.current->node_name;
+
+    if (strncmp(me, acc->new_name, MAX_NODE_NAME_SIZE) == 0) {
+        if (!st->joined && acc->header.request_id != st->join_request_id) {
+            return 0;
+        }
+        return 1;
+    }
+
+    if (strncmp(me, acc->prev_name, MAX_NODE_NAME_SIZE) == 0) {
+        if (strncmp(st->config.next->node_name, acc->before_name, MAX_NODE_NAME_SIZE) == 0)
+            return 1;
+        if (strncmp(st->config.next->node_name, acc->new_name, MAX_NODE_NAME_SIZE) == 0)
+            return 1;
+    }
+
+    return 0;
+}
+
 
 static int broadcast_send_ack(int broadcast_socket, uint32_t request_id_host, const char* from_name) {
     join_ack_t ack = {0};
@@ -33,7 +53,7 @@ static int broadcast_send_ack(int broadcast_socket, uint32_t request_id_host, co
     ack.header.request_id = htonl(request_id_host);
     strncpy(ack.from_name, from_name, MAX_NODE_NAME_SIZE - 1);
     ack.from_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-
+    LOG_INFO("SENDING JOIN_ACK: req=%u from=%s", request_id_host, from_name);
     if (send_to_all_targets(broadcast_socket, &ack, sizeof(ack), targets, targets_count) < 0) {
         LOG_ERROR("sending join ack");
         return -1;
@@ -133,6 +153,11 @@ static int broadcast_send_accept(int broadcast_socket, const join_accept_t* acce
 }
 
 int join_inflight_tick(ring_state_t* ring_state, int broadcast_socket) {
+    LOG_INFO(
+        "JOIN_ACCEPT TICK: active=%d req=%u retries=%d targets=%zu", ring_state->join_inflight.active,
+        ring_state->join_inflight.request_id, ring_state->join_inflight.retries, targets_count
+    );
+
     if (!ring_state->join_inflight.active) {
         return 0;
     }
@@ -162,6 +187,8 @@ int join_inflight_tick(ring_state_t* ring_state, int broadcast_socket) {
     accept.new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
     accept.before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
     accept.prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+
+    LOG_INFO("SENDING JOIN_ACCEPT: new=%s before=%s prev=%s", accept.new_name, accept.before_name, accept.prev_name);
 
     if (broadcast_send_accept(broadcast_socket, &accept) < 0) {
         return -1;
@@ -214,6 +241,12 @@ int broadcast_setup_socket(const route_t* current) {
     if (targets_count == 0) {
         LOG_WARN("No broadcast targets found");
     }
+    for (size_t i = 0; i < targets_count; i++) {
+        char b[INET_ADDRSTRLEN];
+        inet_ntop(AF_INET, &targets[i].addr.sin_addr, b, sizeof(b));
+        LOG_INFO("BCAST TARGET[%zu]: if=%s addr=%s port=%u", i, targets[i].ifname, b, ntohs(targets[i].addr.sin_port));
+    }
+
     return sock_fd;
 }
 
@@ -294,6 +327,8 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
         }
 
         case JOIN_ACCEPT: {
+
+
             if ((size_t) n_recv != sizeof(join_accept_t)) {
                 LOG_ERROR("Received invalid join accept size: %zd", n_recv);
                 return 0;
@@ -312,6 +347,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             accept_host.header.type = JOIN_ACCEPT;
             accept_host.header.magic = JOIN_MAGIC;
 
+
             strncpy(accept_host.new_name, join_accept.new_name, MAX_NODE_NAME_SIZE - 1);
             strncpy(accept_host.before_name, join_accept.before_name, MAX_NODE_NAME_SIZE - 1);
             strncpy(accept_host.prev_name, join_accept.prev_name, MAX_NODE_NAME_SIZE - 1);
@@ -319,10 +355,20 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             accept_host.before_unicast_port = ntohs(join_accept.before_unicast_port);
             accept_host.prev_unicast_port = ntohs(join_accept.prev_unicast_port);
 
+            LOG_INFO(
+                "RECV JOIN_ACCEPT: req=%u new=%s before=%s prev=%s", accept_host.header.request_id,
+                accept_host.new_name, accept_host.before_name, accept_host.prev_name
+            );
+            int should_ack = should_ack_accept(ring_state, &accept_host);
             int did_apply = 0;
             apply_accept_if_relevant(ring_state, &accept_host, &did_apply);
-            if (did_apply) {
-                (void) broadcast_send_ack(broadcast_socket, request_id, ring_state->config.current->node_name);
+            LOG_INFO("APPLY JOIN_ACCEPT: did_apply=%d", did_apply);
+            if (should_ack) {
+                int re = broadcast_send_ack(broadcast_socket, request_id, ring_state->config.current->node_name);
+                if (re < 0) {
+                    LOG_ERROR("Failed to send JOIN_ACK");
+                    return -1;
+                }
             }
             return 0;
         }
@@ -345,8 +391,19 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             ack_host.from_name[MAX_NODE_NAME_SIZE - 1] = '\0';
             ack_host.header.type = JOIN_ACK;
             ack_host.header.magic = JOIN_MAGIC;
+            LOG_INFO(
+                "RECV JOIN_ACK: req=%u from=%s inflight=%d exp_prev=%s joiner=%s got_prev=%d got_joiner=%d",
+                ack_host.header.request_id, ack_host.from_name, ring_state->join_inflight.active,
+                ring_state->join_inflight.expected_prev_name, ring_state->join_inflight.joiner.node_name,
+                ring_state->join_inflight.got_ack_prev, ring_state->join_inflight.got_ack_joiner
+            );
+
 
             handle_ack_inflight(ring_state, &ack_host);
+            LOG_INFO(
+                "ACK_STATE AFTER: inflight=%d got_prev=%d got_joiner=%d", ring_state->join_inflight.active,
+                ring_state->join_inflight.got_ack_prev, ring_state->join_inflight.got_ack_joiner
+            );
             return 0;
         }
 

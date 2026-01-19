@@ -160,13 +160,19 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
                     break;
                 }
                 state.have_token = 1;
+                LOG_INFO("Received token via unicast\n");
             }
         }
 
         if (state.joined && state.have_token) {
+            LOG_INFO("TOKEN: have_token=1 pending=%zu inflight=%d", state.join_state.count, state.join_inflight.active);
             if (!state.join_inflight.active && state.join_state.count > 0) {
                 pending_join_t pj;
                 if (pop_oldest_pending_join(&state.join_state, &pj) == 0) {
+                    LOG_INFO(
+                        "JOIN_INFLIGHT START: joiner=%s req=%u (prev=%s curr=%s)", pj.node_name, pj.request_id,
+                        state.config.prev->node_name, state.config.current->node_name
+                    );
                     start_join_inflight(&state, &pj);
                     if (join_inflight_tick(&state, descriptors.broadcast_socket) < 0) {
                         break;
@@ -238,9 +244,8 @@ int ring_on_token(ring_state_t* state, int unicast_socket) {
 
 int fill_config_from_env(route_config_t* config, int joined) {
     char* node_name = getenv("NODE_NAME");
-    char* uni_port = getenv("NODE_UNI_PORT");
-
-    char* b_port = getenv("NODE_BROAD_PORT");
+    char* uni_port  = getenv("NODE_UNI_PORT");
+    char* b_port    = getenv("NODE_BROAD_PORT");
 
     if (!joined) {
         if (!node_name || !uni_port || !b_port) {
@@ -249,32 +254,35 @@ int fill_config_from_env(route_config_t* config, int joined) {
         }
         strncpy(config->current->node_name, node_name, MAX_NODE_NAME_SIZE - 1);
         config->current->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-        config->current->broadcast_port = (uint16_t) atoi(b_port);
-        config->current->unicast_port = (uint16_t) atoi(uni_port);
+        config->current->broadcast_port = (uint16_t)atoi(b_port);
+        config->current->unicast_port   = (uint16_t)atoi(uni_port);
         return 0;
     }
 
     char* prev_node_name = getenv("PREV_NODE_NAME");
     char* prev_node_port = getenv("PREV_NODE_UNI_PORT");
-
     char* next_node_name = getenv("NEXT_NODE_NAME");
     char* next_node_port = getenv("NEXT_NODE_UNI_PORT");
 
-    if (!node_name || !uni_port || !prev_node_name || !prev_node_port || !next_node_name || !next_node_port ||
-        !b_port) {
+    if (!node_name || !uni_port || !prev_node_name || !prev_node_port ||
+        !next_node_name || !next_node_port || !b_port) {
         LOG_ERROR("Some env variables are missing");
         return -1;
     }
 
     strncpy(config->current->node_name, node_name, MAX_NODE_NAME_SIZE - 1);
-    config->current->unicast_port = (uint16_t) atoi(uni_port);
+    config->current->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    config->current->unicast_port = (uint16_t)atoi(uni_port);
 
     strncpy(config->prev->node_name, prev_node_name, MAX_NODE_NAME_SIZE - 1);
-    config->prev->unicast_port = (uint16_t) atoi(prev_node_port);
+    config->prev->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    config->prev->unicast_port = (uint16_t)atoi(prev_node_port);
 
     strncpy(config->next->node_name, next_node_name, MAX_NODE_NAME_SIZE - 1);
-    config->next->unicast_port = (uint16_t) atoi(next_node_port);
-    config->current->broadcast_port = (uint16_t) atoi(b_port);
+    config->next->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    config->next->unicast_port = (uint16_t)atoi(next_node_port);
 
+    config->current->broadcast_port = (uint16_t)atoi(b_port);
     return 0;
 }
+
