@@ -4,16 +4,18 @@ services:
             dockerfile: dockerfile
         image: z11_token_ring
         container_name: z11_node0
+        command: ["1"]
         cap_add:
             - NET_ADMIN
         environment:
             SHOULD_START: "true"
             NODE_NAME: node0
-            NODE_PORT: 5000
+            NODE_UNI_PORT: 5000
+            NODE_BROAD_PORT: 6000
             PREV_NODE_NAME: node2
-            PREV_NODE_PORT: 5000
+            PREV_NODE_UNI_PORT: 5000
             NEXT_NODE_NAME: node1
-            NEXT_NODE_PORT: 5000
+            NEXT_NODE_UNI_PORT: 5000
             NETEM_ENABLED: ${NETEM_ENABLED:-false}
             NETEM_DELAY: ${NETEM_DELAY:-0ms}
             NETEM_JITTER: ${NETEM_JITTER:-0ms}
@@ -32,13 +34,15 @@ services:
         container_name: z11_node1
         cap_add:
             - NET_ADMIN
+        command: ["1"]
         environment:
             NODE_NAME: node1
-            NODE_PORT: 5000
+            NODE_UNI_PORT: 5000
+            NODE_BROAD_PORT: 6000
             PREV_NODE_NAME: node0
-            PREV_NODE_PORT: 5000
+            PREV_NODE_UNI_PORT: 5000
             NEXT_NODE_NAME: node2
-            NEXT_NODE_PORT: 5000
+            NEXT_NODE_UNI_PORT: 5000
             NETEM_ENABLED: ${NETEM_ENABLED:-false}
             NETEM_DELAY: ${NETEM_DELAY:-0ms}
             NETEM_JITTER: ${NETEM_JITTER:-0ms}
@@ -54,13 +58,15 @@ services:
         container_name: z11_node2
         cap_add:
             - NET_ADMIN
+        command: ["1"]
         environment:
             NODE_NAME: node2
-            NODE_PORT: 5000
+            NODE_UNI_PORT: 5000
+            NODE_BROAD_PORT: 6000
             PREV_NODE_NAME: node1
-            PREV_NODE_PORT: 5000
+            PREV_NODE_UNI_PORT: 5000
             NEXT_NODE_NAME: node0
-            NEXT_NODE_PORT: 5000
+            NEXT_NODE_UNI_PORT: 5000
             NETEM_ENABLED: ${NETEM_ENABLED:-false}
             NETEM_DELAY: ${NETEM_DELAY:-0ms}
             NETEM_JITTER: ${NETEM_JITTER:-0ms}
