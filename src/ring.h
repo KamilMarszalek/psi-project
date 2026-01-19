@@ -30,6 +30,8 @@ typedef struct {
     uint32_t join_request_id;
     time_t join_request_last_sent;
     int join_request_retries;
+
+    uint32_t last_seen_topo_version;
 } ring_state_t;
 
 int ring_initialize(route_config_t* config, descriptors_t* descriptors, int joined);

@@ -33,7 +33,7 @@ int main(int argc, char* argv[]) {
         exit(EXIT_FAILURE);
     }
 
-    token_t token = {.is_empty = false};
+    token_t token = {.is_empty = false, .topo_version = 0};
     strncpy(token.data, argv[1], MAX_DATA_SIZE - 1);
     strncpy(token.receiver, argv[2], MAX_NODE_NAME_SIZE - 1);
     strncpy(token.sender, sender_name_env, MAX_NODE_NAME_SIZE - 1);
