@@ -4,7 +4,7 @@
 #include "logger.h"
 #include "route.h"
 #include "rudp.h"
-#include "token.h"
+#include "unicast_msg.h"
 
 #include <arpa/inet.h>
 #include <errno.h>
@@ -38,13 +38,25 @@ int unicast_setup_socket(route_t* current) {
     return sock_fd;
 }
 
-int unicast_recv(int unicast_sock, token_t* token) {
+int unicast_recv(int unicast_sock, unicast_msg_t* msg) {
     struct sockaddr_in prev_node_addr;
     socklen_t length = sizeof(prev_node_addr);
-    return rudp_recvfrom(unicast_sock, token, sizeof(token_t), &prev_node_addr, length);
+    unicast_msg_t wire = {0};
+    int rc = rudp_recvfrom(unicast_sock, &wire, sizeof(wire), &prev_node_addr, length);
+    if (rc != 0) {
+        return rc;
+    }
+    msg->type = ntohs(wire.type);
+    msg->payload_len = ntohs(wire.payload_len);
+    if (msg->payload_len > MAX_UNICAST_PAYLOAD) {
+        LOG_ERROR("Invalid unicast payload length: %u", msg->payload_len);
+        return -1;
+    }
+    memcpy(msg->payload, wire.payload, msg->payload_len);
+    return 0;
 }
 
-int unicast_send(int unicast_sock, token_t* token, route_t* next) {
+int unicast_send(int unicast_sock, const unicast_msg_t* msg, const route_t* next) {
     struct sockaddr_in next_node_addr = {
         .sin_family = AF_INET,
         .sin_port = htons(next->unicast_port),
@@ -72,5 +84,15 @@ int unicast_send(int unicast_sock, token_t* token, route_t* next) {
         freeaddrinfo(addr_res);
     }
 
-    return rudp_sendto(unicast_sock, token, sizeof(token_t), &next_node_addr, length);
+    if (msg->payload_len > MAX_UNICAST_PAYLOAD) {
+        LOG_ERROR("Invalid unicast payload length: %u", msg->payload_len);
+        return -1;
+    }
+
+    unicast_msg_t wire = {0};
+    wire.type = htons(msg->type);
+    wire.payload_len = htons(msg->payload_len);
+    memcpy(wire.payload, msg->payload, msg->payload_len);
+
+    return rudp_sendto(unicast_sock, &wire, sizeof(wire), &next_node_addr, length);
 }

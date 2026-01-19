@@ -44,6 +44,11 @@ typedef struct {
 } join_ack_t;
 
 typedef struct {
+    uint32_t request_id;
+    char from_name[MAX_NODE_NAME_SIZE];
+} join_confirm_t;
+
+typedef struct {
     int used;
     uint32_t request_id;
     char node_name[MAX_NODE_NAME_SIZE];
@@ -59,8 +64,8 @@ typedef struct {
     pending_join_t joiner;
 
     char expected_prev_name[MAX_NODE_NAME_SIZE];
-    int got_ack_prev;
-    int got_ack_joiner;
+    int got_confirm_prev;
+    int got_confirm_joiner;
 
     time_t last_sent;
     int retries;

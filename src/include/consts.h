@@ -19,4 +19,6 @@
 
 
 #define JOIN_PENDING_TTL_S 20
+
+#define MAX_UNICAST_PAYLOAD 512
 #endif
