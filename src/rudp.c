@@ -13,9 +13,8 @@
 #include <unistd.h>
 
 #define MAX_FRAME_SIZE ((1 << 16) - 1)
-#define MAX_TRANSMISION_ATTEMPTS 3
+#define MAX_TRANSMISION_ATTEMPTS 15
 #define TIMEOUT_USEC 100000
-#define ACK_TIMEOUT_USEC 100000
 #define ACK_ACK_DELAY_USEC 250000
 
 static int wait_for_packet(int socket, void* buf, int bufsize, int timeout_us);
@@ -55,7 +54,7 @@ int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_i
         }
 
         frame_t ack_frame;
-        int ack_result = wait_for_packet(socket, &ack_frame, sizeof(header_t), ACK_TIMEOUT_USEC);
+        int ack_result = wait_for_packet(socket, &ack_frame, sizeof(header_t), TIMEOUT_USEC);
         if (ack_result < 0) {
             free(frame);
             return -1;
