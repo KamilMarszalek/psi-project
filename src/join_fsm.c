@@ -73,7 +73,7 @@ void join_fsm_start_inflight(ring_state_t* state, const pending_join_t* pending)
     state->join_inflight.retries = 0;
 }
 
-static void join_fsm_try_complete(ring_state_t* state) {
+static void join_fsm_try_complete(ring_state_t* state, int broadcast_socket) {
     if (!state->join_inflight.active) {
         return;
     }
@@ -81,7 +81,6 @@ static void join_fsm_try_complete(ring_state_t* state) {
         return;
     }
 
-    // Coordinator: finalizacja - nowy prev to joiner
     strncpy(state->config.prev->node_name, state->join_inflight.joiner.node_name, MAX_NODE_NAME_SIZE - 1);
     state->config.prev->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
     state->config.prev->unicast_port = state->join_inflight.joiner.unicast_port;
@@ -96,6 +95,12 @@ static void join_fsm_try_complete(ring_state_t* state) {
     state->join_inflight.got_confirm_prev = 0;
     state->join_inflight.got_confirm_joiner = 0;
     state->join_inflight.retries = 0;
+
+    broadcast_send_join_commit(
+        broadcast_socket, state->join_inflight.request_id, state->join_inflight.joiner.node_name,
+        state->last_seen_topo_version
+    );
+
 
     LOG_INFO(
         "JOIN_INFLIGHT COMPLETE: new prev=%s topo=%u", state->config.prev->node_name, state->last_seen_topo_version
@@ -146,7 +151,7 @@ int join_fsm_inflight_tick(ring_state_t* state, int broadcast_socket) {
     return 0;
 }
 
-void join_fsm_handle_ack_broadcast(ring_state_t* state, const join_ack_t* ack) {
+void join_fsm_handle_ack_broadcast(ring_state_t* state, const join_ack_t* ack, int broadcast_socket) {
     if (!state->join_inflight.active) {
         return;
     }
@@ -166,5 +171,5 @@ void join_fsm_handle_ack_broadcast(ring_state_t* state, const join_ack_t* ack) {
         state->join_inflight.got_confirm_prev, state->join_inflight.got_confirm_joiner
     );
 
-    join_fsm_try_complete(state);
+    join_fsm_try_complete(state, broadcast_socket);
 }
