@@ -14,19 +14,20 @@
 #include <unistd.h>
 
 #define MAX_FRAME_SIZE ((1 << 16) - 1)
-#define MAX_TRANSMISION_ATTEMPTS 2000
-#define TIMEOUT_USEC 500000
-#define ACK_TIMEOUT_USEC 500000
-#define ACK_ACK_WAIT_USEC 100000
+#define MAX_TRANSMISION_ATTEMPTS 15
+#define ACK_TIMEOUT_USEC 2000000
+#define ACK_ACK_TIMEOUT_USEC 300000
+#define ACK_ACK_DELAY_USEC 50000
+#define ACK_ACK_SEND_COUNT 15
 #define MAX_RUDP_PEERS 32
-#define MAX_RUDP_PENDING 64
+#define MAX_RUDP_PENDING 256
 
 static int wait_for_frame(
     int socket, const struct sockaddr_in* expected_addr, frame_type_t expected_type, uint8_t expected_seq,
     int timeout_us, void* out_buf, size_t out_bufsize
 );
 static int pending_take_message_any(struct sockaddr_in* addr_out, void* out_buf, size_t* out_len);
-static void pending_store_message(const struct sockaddr_in* addr, const void* buf, size_t len);
+static int pending_store_message(const struct sockaddr_in* addr, const void* buf, size_t len);
 static void ack_incoming_message(int socket, const struct sockaddr_in* from, socklen_t from_len, uint8_t seq_bit);
 
 typedef struct {
@@ -130,10 +131,13 @@ int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_i
 
     free(frame);
 
-    frame_t ack_ack_frame = {.header = {.frame_type = ACK_ACK, .seq_bit = peer->state.send_seq_bit}};
-    if (sendto(socket, &ack_ack_frame, sizeof(header_t), 0, (struct sockaddr*) dest_addr, addrlen) < 0) {
-        LOG_ERROR("Sending ACK_ACK: %s", strerror(errno));
-        return -1;
+    for (int i = 0; i < ACK_ACK_SEND_COUNT; i++) {
+        frame_t ack_ack_frame = {.header = {.frame_type = ACK_ACK, .seq_bit = peer->state.send_seq_bit}};
+        if (sendto(socket, &ack_ack_frame, sizeof(header_t), 0, (struct sockaddr*) dest_addr, addrlen) < 0) {
+            LOG_ERROR("Sending ACK_ACK: %s", strerror(errno));
+            return -1;
+        }
+        usleep(ACK_ACK_DELAY_USEC);
     }
 
     peer->state.send_seq_bit ^= 1;
@@ -199,21 +203,38 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
             );
         }
 
-        frame_t ack_frame = {.header = {.frame_type = ACK, .seq_bit = message_frame->header.seq_bit}};
-        if (sendto(socket, &ack_frame, sizeof(header_t), 0, (struct sockaddr*) source_addr, addrlen) < 0) {
-            LOG_ERROR("Sending ACK(%u): %s", ack_frame.header.seq_bit, strerror(errno));
-            return -1;
+        int ack_ack_received = 0;
+        int attempts = 0;
+        while (!ack_ack_received && attempts < MAX_TRANSMISION_ATTEMPTS) {
+            frame_t ack_frame = {.header = {.frame_type = ACK, .seq_bit = message_frame->header.seq_bit}};
+            if (sendto(socket, &ack_frame, sizeof(header_t), 0, (struct sockaddr*) source_addr, addrlen) < 0) {
+                LOG_ERROR("Sending ACK(%u): %s", ack_frame.header.seq_bit, strerror(errno));
+                return -1;
+            }
+
+            frame_t ack_ack_frame;
+            int ack_ack_result = wait_for_frame(
+                socket, source_addr, ACK_ACK, message_frame->header.seq_bit, ACK_ACK_TIMEOUT_USEC, &ack_ack_frame,
+                sizeof(ack_ack_frame)
+            );
+            if (ack_ack_result < 0) {
+                return -1;
+            }
+
+            if (ack_ack_result == 0) {
+                attempts++;
+                LOG_DEBUG(
+                    "Timeout waiting for ACK_ACK(%u), resending ACK (retry number %d)", message_frame->header.seq_bit,
+                    attempts
+                );
+                continue;
+            }
+
+            LOG_DEBUG("Received appropriate ACK_ACK(%u)", message_frame->header.seq_bit);
+            ack_ack_received = 1;
         }
 
-        frame_t ack_ack_frame;
-        int ack_ack_result = wait_for_frame(
-            socket, source_addr, ACK_ACK, message_frame->header.seq_bit, ACK_ACK_WAIT_USEC, &ack_ack_frame,
-            sizeof(ack_ack_frame)
-        );
-        if (ack_ack_result < 0) {
-            return -1;
-        }
-        if (ack_ack_result == 0) {
+        if (!ack_ack_received) {
             LOG_WARN("ACK-ACK was not received. Even though token is being forwarded.");
         }
 
@@ -223,7 +244,6 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
         }
     }
 }
-
 
 static int pending_take_message_any(struct sockaddr_in* addr_out, void* out_buf, size_t* out_len) {
     for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
@@ -244,13 +264,13 @@ static int pending_take_message_any(struct sockaddr_in* addr_out, void* out_buf,
     return 0;
 }
 
-static void pending_store_message(const struct sockaddr_in* addr, const void* buf, size_t len) {
+static int pending_store_message(const struct sockaddr_in* addr, const void* buf, size_t len) {
     if (len > MAX_FRAME_SIZE || len < sizeof(header_t)) {
-        return;
+        return 0;
     }
     frame_t* frame = (frame_t*) buf;
     if (frame->header.frame_type != MESSAGE) {
-        return;
+        return 0;
     }
     for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
         if (!pending_frames[i].used) {
@@ -258,10 +278,11 @@ static void pending_store_message(const struct sockaddr_in* addr, const void* bu
             pending_frames[i].addr = *addr;
             pending_frames[i].len = len;
             memcpy(pending_frames[i].data, buf, len);
-            return;
+            return 1;
         }
     }
     LOG_WARN("RUDP pending buffer full, dropping message");
+    return 0;
 }
 
 static void ack_incoming_message(int socket, const struct sockaddr_in* from, socklen_t from_len, uint8_t seq_bit) {
@@ -324,8 +345,9 @@ static int wait_for_frame(
         }
         frame_t* frame = (frame_t*) frame_buf;
         if (frame->header.frame_type == MESSAGE) {
-            ack_incoming_message(socket, &from, from_len, frame->header.seq_bit);
-            pending_store_message(&from, frame_buf, (size_t) n);
+            if (pending_store_message(&from, frame_buf, (size_t) n)) {
+                ack_incoming_message(socket, &from, from_len, frame->header.seq_bit);
+            }
             continue;
         }
         if (addr_equal(&from, expected_addr) && frame->header.frame_type == expected_type &&

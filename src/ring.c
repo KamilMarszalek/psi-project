@@ -26,6 +26,7 @@ static void start_join_inflight(ring_state_t* state, pending_join_t* pj);
 static int join_inflight_tick(ring_state_t* state, int unicast_socket);
 static int handle_join_accept_unicast(ring_state_t* state, const join_accept_t* accept, int unicast_socket);
 static void handle_join_confirm_unicast(ring_state_t* state, const join_confirm_t* confirm);
+static int set_select_timeout(const ring_state_t* state, struct timeval* out_timeout);
 
 
 int ring_initialize(route_config_t* config, descriptors_t* descriptors, int joined) {
@@ -121,16 +122,8 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
         FD_SET(descriptors.broadcast_socket, &rfds);
         FD_SET(descriptors.cli_fd, &rfds);
 
-        int have_pending_before = rudp_has_pending();
-        if (have_pending_before) {
-            timeout.tv_sec = 0;
-            timeout.tv_usec = 0;
-        } else {
-            timeout.tv_sec = SELECT_TIMEOUT_S;
-            timeout.tv_usec = 0;
-        }
-
-        int ret = select(maxfd + 1, &rfds, NULL, NULL, &timeout);
+        int use_timeout = set_select_timeout(&state, &timeout);
+        int ret = select(maxfd + 1, &rfds, NULL, NULL, use_timeout ? &timeout : NULL);
 
         time_t now = time(NULL);
         prune_joins(&state.join_state, now, JOIN_PENDING_TTL_S);
@@ -559,4 +552,58 @@ static int join_inflight_tick(ring_state_t* state, int unicast_socket) {
     state->join_inflight.last_sent = now;
     state->join_inflight.retries++;
     return 0;
+}
+
+
+static int set_select_timeout(const ring_state_t* state, struct timeval* timeout) {
+    if (rudp_has_pending()) {
+        timeout->tv_sec = 0;
+        timeout->tv_usec = 0;
+        return 1;
+    }
+
+    if (state->have_token) {
+        timeout->tv_sec = 0;
+        timeout->tv_usec = 0;
+        return 1;
+    }
+
+    time_t now = time(NULL);
+    time_t next_deadline = 0;
+
+    if (!state->joined) {
+        time_t deadline =
+            state->join_request_last_sent == 0 ? now : state->join_request_last_sent + JOIN_REQUEST_TIMEOUT_S;
+        next_deadline = deadline;
+    }
+
+    if (state->join_inflight.active &&
+        !(state->join_inflight.got_confirm_prev && state->join_inflight.got_confirm_joiner)) {
+        time_t deadline =
+            state->join_inflight.last_sent == 0 ? now : state->join_inflight.last_sent + JOIN_ACCEPT_TIMEOUT_S;
+        if (next_deadline == 0 || deadline < next_deadline) {
+            next_deadline = deadline;
+        }
+    }
+
+    if (state->join_state.count > 0) {
+        time_t deadline = now + 1;
+        if (next_deadline == 0 || deadline < next_deadline) {
+            next_deadline = deadline;
+        }
+    }
+
+    if (next_deadline == 0) {
+        return 0;
+    }
+
+    if (next_deadline <= now) {
+        timeout->tv_sec = 0;
+        timeout->tv_usec = 0;
+        return 1;
+    }
+
+    timeout->tv_sec = (int) (next_deadline - now);
+    timeout->tv_usec = 0;
+    return 1;
 }
