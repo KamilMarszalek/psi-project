@@ -105,7 +105,7 @@ int broadcast_setup_socket(const route_t* current) {
     for (size_t i = 0; i < targets_count; i++) {
         char b[INET_ADDRSTRLEN];
         inet_ntop(AF_INET, &targets[i].addr.sin_addr, b, sizeof(b));
-        LOG_INFO("BCAST TARGET[%zu]: if=%s addr=%s port=%u", i, targets[i].ifname, b, ntohs(targets[i].addr.sin_port));
+        LOG_DEBUG("BCAST TARGET[%zu]: if=%s addr=%s port=%u", i, targets[i].ifname, b, ntohs(targets[i].addr.sin_port));
     }
 
     return sock_fd;
@@ -162,7 +162,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             join_request.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
 
             if (strncmp(join_request.node_name, ring_state->config.current->node_name, MAX_NODE_NAME_SIZE) == 0) {
-                LOG_INFO("Received join request from self, ignoring");
+                LOG_DEBUG("Received join request from self, ignoring");
                 return 0;
             }
 

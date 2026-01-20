@@ -77,7 +77,7 @@ void join_fsm_start_inflight(ring_state_t* state, const pending_join_t* pending)
 }
 
 int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket) {
-    LOG_INFO(
+    LOG_DEBUG(
         "JOIN_ACCEPT_U TICK: active=%d req=%u retries=%d", state->join_inflight.active, state->join_inflight.request_id,
         state->join_inflight.retries
     );
@@ -234,7 +234,7 @@ void join_fsm_handle_confirm_unicast(ring_state_t* state, const join_confirm_t* 
 
         state->last_seen_topo_version++;
         state->token_in.topo_version = state->last_seen_topo_version;
-        state->join_state = (join_state_t){0};
+        state->join_state = (join_state_t) {0};
 
         state->join_inflight.active = 0;
         state->join_inflight.got_confirm_prev = 0;
@@ -242,8 +242,7 @@ void join_fsm_handle_confirm_unicast(ring_state_t* state, const join_confirm_t* 
         state->join_inflight.retries = 0;
 
         LOG_INFO(
-            "JOIN_INFLIGHT COMPLETE: new prev=%s topo=%u", state->config.prev->node_name,
-            state->last_seen_topo_version
+            "JOIN_INFLIGHT COMPLETE: new prev=%s topo=%u", state->config.prev->node_name, state->last_seen_topo_version
         );
     }
 }
