@@ -62,8 +62,8 @@ log_dir="logs/${scenario_name}${netem_suffix}"
 cleanup() {
 	echo ""
 	echo "Stopping containers"
-	if [[ -n "${log_pids:-}" ]]; then
-		kill "${log_pids}" 2>/dev/null || true
+	if [ "${#log_pids[@]:-0}" -gt 0 ]; then
+		kill "${log_pids[@]}" 2>/dev/null || true
 	fi
 	"${docker_compose_cmd[@]}" -f "$compose_file" down
 	echo "Cleanup complete"
@@ -85,7 +85,7 @@ echo "Starting containers"
 "${docker_compose_cmd[@]}" -f "$compose_file" up -d --build
 
 mkdir -p "$log_dir"
-log_pids=""
+log_pids=()
 
 mapfile -t services < <("${docker_compose_cmd[@]}" -f "$compose_file" config --services)
 
@@ -95,9 +95,12 @@ if [ "${#services[@]}" -eq 0 ]; then
 fi
 
 echo "Streaming logs to $log_dir"
+"${docker_compose_cmd[@]}" -f "$compose_file" logs -f --no-color >"$log_dir/combined" 2>&1 &
+log_pids+=("$!")
+
 for service in "${services[@]}"; do
 	"${docker_compose_cmd[@]}" -f "$compose_file" logs -f --no-color "$service" >"$log_dir/${service}.log" 2>&1 &
-	log_pids+=" $!"
+	log_pids+=("$!")
 done
 
 wait
