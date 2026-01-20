@@ -14,7 +14,14 @@ typedef struct Descriptors {
 
 typedef struct {
     route_config_t config;
+    int joined;
+    uint32_t last_seen_topo_version;
+
     join_state_t join_state;
+    join_inflight_t join_inflight;
+    uint32_t join_request_id;
+    time_t join_request_last_sent;
+    int join_request_retries;
 
     token_t token_in;
     int have_token;
@@ -23,15 +30,6 @@ typedef struct {
     int have_cli_pending;
 
     struct timeval forward_at;
-    join_inflight_t join_inflight;
-
-    int joined;
-
-    uint32_t join_request_id;
-    time_t join_request_last_sent;
-    int join_request_retries;
-
-    uint32_t last_seen_topo_version;
 } ring_state_t;
 
 int ring_initialize(route_config_t* config, descriptors_t* descriptors, int joined);

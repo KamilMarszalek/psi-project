@@ -28,7 +28,11 @@ static int wait_for_frame(
 );
 static int pending_take_message_any(struct sockaddr_in* addr_out, void* out_buf, size_t* out_len);
 static int pending_store_message(const struct sockaddr_in* addr, const void* buf, size_t len);
-static void ack_incoming_message(int socket, const struct sockaddr_in* from, socklen_t from_len, uint8_t seq_bit);
+static int send_ack_frame(int socket, const struct sockaddr_in* to, socklen_t to_len, uint8_t seq_bit);
+static int send_ack_ack_burst(int socket, const struct sockaddr_in* dest, socklen_t dest_len, uint8_t seq_bit);
+static int receive_message_frame(
+    int socket, struct sockaddr_in* source_addr, void* out_buf, size_t out_buf_size, size_t* out_len
+);
 
 typedef struct {
     uint8_t send_seq_bit;
@@ -131,13 +135,8 @@ int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_i
 
     free(frame);
 
-    for (int i = 0; i < ACK_ACK_SEND_COUNT; i++) {
-        frame_t ack_ack_frame = {.header = {.frame_type = ACK_ACK, .seq_bit = peer->state.send_seq_bit}};
-        if (sendto(socket, &ack_ack_frame, sizeof(header_t), 0, (struct sockaddr*) dest_addr, addrlen) < 0) {
-            LOG_ERROR("Sending ACK_ACK: %s", strerror(errno));
-            return -1;
-        }
-        usleep(ACK_ACK_DELAY_USEC);
+    if (send_ack_ack_burst(socket, dest_addr, addrlen, peer->state.send_seq_bit) < 0) {
+        return -1;
     }
 
     peer->state.send_seq_bit ^= 1;
@@ -155,32 +154,9 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
     while (1) {
         char frame_buf[MAX_FRAME_SIZE];
         size_t frame_len = 0;
-
-        if (pending_take_message_any(source_addr, frame_buf, &frame_len) == 0) {
-            while (1) {
-                struct sockaddr_in from = {0};
-                socklen_t from_len = sizeof(from);
-                ssize_t n = recvfrom(
-                    socket, frame_buf, sizeof(frame_buf), MSG_DONTWAIT, (struct sockaddr*) &from, &from_len
-                );
-                if (n < 0) {
-                    if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                        return 1;
-                    }
-                    LOG_ERROR("Receiving rudp frame");
-                    return -1;
-                }
-                if ((size_t) n < sizeof(header_t)) {
-                    continue;
-                }
-                frame_t* frame = (frame_t*) frame_buf;
-                if (frame->header.frame_type != MESSAGE) {
-                    continue;
-                }
-                *source_addr = from;
-                frame_len = (size_t) n;
-                break;
-            }
+        int recv_result = receive_message_frame(socket, source_addr, frame_buf, sizeof(frame_buf), &frame_len);
+        if (recv_result != 0) {
+            return recv_result;
         }
 
         (void) frame_len;
@@ -206,9 +182,7 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
         int ack_ack_received = 0;
         int attempts = 0;
         while (!ack_ack_received && attempts < MAX_TRANSMISION_ATTEMPTS) {
-            frame_t ack_frame = {.header = {.frame_type = ACK, .seq_bit = message_frame->header.seq_bit}};
-            if (sendto(socket, &ack_frame, sizeof(header_t), 0, (struct sockaddr*) source_addr, addrlen) < 0) {
-                LOG_ERROR("Sending ACK(%u): %s", ack_frame.header.seq_bit, strerror(errno));
+            if (send_ack_frame(socket, source_addr, addrlen, message_frame->header.seq_bit) < 0) {
                 return -1;
             }
 
@@ -285,11 +259,25 @@ static int pending_store_message(const struct sockaddr_in* addr, const void* buf
     return 0;
 }
 
-static void ack_incoming_message(int socket, const struct sockaddr_in* from, socklen_t from_len, uint8_t seq_bit) {
+static int send_ack_frame(int socket, const struct sockaddr_in* to, socklen_t to_len, uint8_t seq_bit) {
     frame_t ack_frame = {.header = {.frame_type = ACK, .seq_bit = seq_bit}};
-    if (sendto(socket, &ack_frame, sizeof(header_t), 0, (struct sockaddr*) from, from_len) < 0) {
+    if (sendto(socket, &ack_frame, sizeof(header_t), 0, (struct sockaddr*) to, to_len) < 0) {
         LOG_ERROR("Sending ACK(%u): %s", ack_frame.header.seq_bit, strerror(errno));
+        return -1;
     }
+    return 0;
+}
+
+static int send_ack_ack_burst(int socket, const struct sockaddr_in* dest, socklen_t dest_len, uint8_t seq_bit) {
+    for (int i = 0; i < ACK_ACK_SEND_COUNT; i++) {
+        frame_t ack_ack_frame = {.header = {.frame_type = ACK_ACK, .seq_bit = seq_bit}};
+        if (sendto(socket, &ack_ack_frame, sizeof(header_t), 0, (struct sockaddr*) dest, dest_len) < 0) {
+            LOG_ERROR("Sending ACK_ACK: %s", strerror(errno));
+            return -1;
+        }
+        usleep(ACK_ACK_DELAY_USEC);
+    }
+    return 0;
 }
 
 int rudp_has_pending(void) {
@@ -299,6 +287,37 @@ int rudp_has_pending(void) {
         }
     }
     return 0;
+}
+
+static int receive_message_frame(
+    int socket, struct sockaddr_in* source_addr, void* out_buf, size_t out_buf_size, size_t* out_len
+) {
+    if (pending_take_message_any(source_addr, out_buf, out_len) == 1) {
+        return 0;
+    }
+
+    while (1) {
+        struct sockaddr_in from = {0};
+        socklen_t from_len = sizeof(from);
+        ssize_t n = recvfrom(socket, out_buf, out_buf_size, MSG_DONTWAIT, (struct sockaddr*) &from, &from_len);
+        if (n < 0) {
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                return 1;
+            }
+            LOG_ERROR("Receiving rudp frame");
+            return -1;
+        }
+        if ((size_t) n < sizeof(header_t)) {
+            continue;
+        }
+        frame_t* frame = (frame_t*) out_buf;
+        if (frame->header.frame_type != MESSAGE) {
+            continue;
+        }
+        *source_addr = from;
+        *out_len = (size_t) n;
+        return 0;
+    }
 }
 
 static int wait_for_frame(
@@ -346,7 +365,7 @@ static int wait_for_frame(
         frame_t* frame = (frame_t*) frame_buf;
         if (frame->header.frame_type == MESSAGE) {
             if (pending_store_message(&from, frame_buf, (size_t) n)) {
-                ack_incoming_message(socket, &from, from_len, frame->header.seq_bit);
+                send_ack_frame(socket, &from, from_len, frame->header.seq_bit);
             }
             continue;
         }

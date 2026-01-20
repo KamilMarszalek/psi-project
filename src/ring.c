@@ -21,9 +21,16 @@
 
 #define MAX3(x, y, z) (((x) > (y)) ? (((x) > (z)) ? (x) : (z)) : (((y) > (z)) ? (y) : (z)))
 
-int fill_config_from_env(route_config_t* config, int joined);
-int ring_on_token(ring_state_t* state, int unicast_socket);
+static int fill_config_from_env(route_config_t* config, int joined);
+static int ring_on_token(ring_state_t* state, int unicast_socket);
 static int set_select_timeout(const ring_state_t* state, struct timeval* timeout);
+static void init_ring_state(ring_state_t* state, route_config_t config, int joined);
+static int init_join_request_if_needed(ring_state_t* state, int broadcast_socket);
+static int maybe_send_initial_token(const ring_state_t* state, int unicast_socket);
+static int handle_broadcast_if_ready(int broadcast_socket, ring_state_t* state, const fd_set* rfds);
+static int handle_cli_if_ready(int cli_fd, ring_state_t* state, const fd_set* rfds);
+static int handle_unicast_if_ready(int unicast_socket, ring_state_t* state, const fd_set* rfds);
+static int handle_token_if_ready(ring_state_t* state, int unicast_socket);
 
 
 int ring_initialize(route_config_t* config, descriptors_t* descriptors, int joined) {
@@ -59,31 +66,16 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
     struct timeval timeout;
 
     ring_state_t state = {0};
-    state.config = config;
-    state.joined = joined;
-    state.join_state = (join_state_t){0};
-    state.last_seen_topo_version = 0;
+    init_ring_state(&state, config, joined);
 
-    if (!state.joined) {
-        srand((unsigned int) time(NULL) ^ getpid());
-        state.join_request_id = (uint32_t) rand();
-        state.join_request_last_sent = 0;
-        state.join_request_retries = 0;
-
-        if (join_fsm_request_tick(&state, descriptors.broadcast_socket) < 0) {
-            return -1;
-        }
+    if (init_join_request_if_needed(&state, descriptors.broadcast_socket) < 0) {
+        return -1;
     }
     int maxfd = MAX3(descriptors.unicast_socket, descriptors.broadcast_socket, descriptors.cli_fd);
     LOG_INFO("Node initalized, waiting for UDP packets");
 
-    if (getenv("SHOULD_START") && state.joined) {
-        token_t token = {.is_empty = true, .topo_version = state.last_seen_topo_version};
-        unicast_msg_t msg = {.type = UMSG_TOKEN, .payload_len = sizeof(token_t)};
-        memcpy(msg.payload, &token, sizeof(token));
-        if (unicast_send(descriptors.unicast_socket, &msg, config.next) < 0) {
-            return -1;
-        }
+    if (maybe_send_initial_token(&state, descriptors.unicast_socket) < 0) {
+        return -1;
     }
 
     while (1) {
@@ -114,73 +106,27 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
             return -1;
         }
 
-        if (FD_ISSET(descriptors.broadcast_socket, &rfds)) {
-            if (handle_broadcast(descriptors.broadcast_socket, &state) < 0) {
-                break;
-            }
+        if (handle_broadcast_if_ready(descriptors.broadcast_socket, &state, &rfds) < 0) {
+            break;
         }
 
-        if (FD_ISSET(descriptors.cli_fd, &rfds)) {
-            if (cli_handle_read(descriptors.cli_fd, &state.cli_pending) < 0) {
-                break;
-            }
-            state.have_cli_pending = 1;
+        if (handle_cli_if_ready(descriptors.cli_fd, &state, &rfds) < 0) {
+            break;
         }
 
-        int have_pending = rudp_has_pending();
-        if (have_pending || FD_ISSET(descriptors.unicast_socket, &rfds)) {
-            int unicast_error = 0;
-            do {
-                unicast_msg_t msg = {0};
-                int rc = unicast_recv(descriptors.unicast_socket, &msg);
-                if (rc > 0) {
-                    break;
-                }
-                if (rc < 0) {
-                    unicast_error = 1;
-                    break;
-                }
-                if (unicast_dispatch_message(&state, &msg, descriptors.unicast_socket) < 0) {
-                    unicast_error = 1;
-                    break;
-                }
-            } while (rudp_has_pending());
-            if (unicast_error) {
-                break;
-            }
+        if (handle_unicast_if_ready(descriptors.unicast_socket, &state, &rfds) < 0) {
+            break;
         }
 
-        if (state.joined && state.have_token) {
-            LOG_INFO("TOKEN: have_token=1 pending=%zu inflight=%d", state.join_state.count, state.join_inflight.active);
-            if (state.join_inflight.active) {
-                continue;
-            }
-
-            if (state.join_state.count > 0) {
-                pending_join_t pj;
-                if (pop_oldest_pending_join(&state.join_state, &pj) == 0) {
-                    LOG_INFO(
-                        "JOIN_INFLIGHT START: joiner=%s req=%u (prev=%s curr=%s)", pj.node_name, pj.request_id,
-                        state.config.prev->node_name, state.config.current->node_name
-                    );
-                    join_fsm_start_inflight(&state, &pj);
-                    if (join_fsm_inflight_tick(&state, descriptors.unicast_socket) < 0) {
-                        break;
-                    }
-                }
-                continue;
-            }
-
-            if (ring_on_token(&state, descriptors.unicast_socket) < 0) {
-                break;
-            }
+        if (handle_token_if_ready(&state, descriptors.unicast_socket) < 0) {
+            break;
         }
     }
 
     return 0;
 }
 
-int ring_on_token(ring_state_t* state, int unicast_socket) {
+static int ring_on_token(ring_state_t* state, int unicast_socket) {
     token_t out = state->token_in;
 
     if (!out.is_empty) {
@@ -220,7 +166,7 @@ int ring_on_token(ring_state_t* state, int unicast_socket) {
     return 0;
 }
 
-int fill_config_from_env(route_config_t* config, int joined) {
+static int fill_config_from_env(route_config_t* config, int joined) {
     char* node_name = getenv("NODE_NAME");
     char* uni_port = getenv("NODE_UNI_PORT");
     char* b_port = getenv("NODE_BROAD_PORT");
@@ -261,6 +207,127 @@ int fill_config_from_env(route_config_t* config, int joined) {
     config->next->unicast_port = (uint16_t) atoi(next_node_port);
 
     config->current->broadcast_port = (uint16_t) atoi(b_port);
+    return 0;
+}
+
+static void init_ring_state(ring_state_t* state, route_config_t config, int joined) {
+    *state = (ring_state_t){0};
+    state->config = config;
+    state->joined = joined;
+    state->join_state = (join_state_t){0};
+    state->last_seen_topo_version = 0;
+}
+
+static int init_join_request_if_needed(ring_state_t* state, int broadcast_socket) {
+    if (state->joined) {
+        return 0;
+    }
+
+    srand((unsigned int) time(NULL) ^ getpid());
+    state->join_request_id = (uint32_t) rand();
+    state->join_request_last_sent = 0;
+    state->join_request_retries = 0;
+
+    if (join_fsm_request_tick(state, broadcast_socket) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int maybe_send_initial_token(const ring_state_t* state, int unicast_socket) {
+    if (!getenv("SHOULD_START") || !state->joined) {
+        return 0;
+    }
+
+    token_t token = {.is_empty = true, .topo_version = state->last_seen_topo_version};
+    unicast_msg_t msg = {.type = UMSG_TOKEN, .payload_len = sizeof(token_t)};
+    memcpy(msg.payload, &token, sizeof(token));
+    if (unicast_send(unicast_socket, &msg, state->config.next) < 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int handle_broadcast_if_ready(int broadcast_socket, ring_state_t* state, const fd_set* rfds) {
+    if (!FD_ISSET(broadcast_socket, rfds)) {
+        return 0;
+    }
+    if (handle_broadcast(broadcast_socket, state) < 0) {
+        return -1;
+    }
+    return 0;
+}
+
+static int handle_cli_if_ready(int cli_fd, ring_state_t* state, const fd_set* rfds) {
+    if (!FD_ISSET(cli_fd, rfds)) {
+        return 0;
+    }
+    if (cli_handle_read(cli_fd, &state->cli_pending) < 0) {
+        return -1;
+    }
+    state->have_cli_pending = 1;
+    return 0;
+}
+
+static int handle_unicast_if_ready(int unicast_socket, ring_state_t* state, const fd_set* rfds) {
+    int have_pending = rudp_has_pending();
+    if (!have_pending && !FD_ISSET(unicast_socket, rfds)) {
+        return 0;
+    }
+
+    int unicast_error = 0;
+    do {
+        unicast_msg_t msg = {0};
+        int rc = unicast_recv(unicast_socket, &msg);
+        if (rc > 0) {
+            break;
+        }
+        if (rc < 0) {
+            unicast_error = 1;
+            break;
+        }
+        if (unicast_dispatch_message(state, &msg, unicast_socket) < 0) {
+            unicast_error = 1;
+            break;
+        }
+    } while (rudp_has_pending());
+
+    if (unicast_error) {
+        return -1;
+    }
+    return 0;
+}
+
+static int handle_token_if_ready(ring_state_t* state, int unicast_socket) {
+    if (!state->joined || !state->have_token) {
+        return 0;
+    }
+
+    LOG_INFO("TOKEN: have_token=1 pending=%zu inflight=%d", state->join_state.count, state->join_inflight.active);
+    if (state->join_inflight.active) {
+        return 0;
+    }
+
+    if (state->join_state.count > 0) {
+        pending_join_t pj;
+        if (pop_oldest_pending_join(&state->join_state, &pj) == 0) {
+            LOG_INFO(
+                "JOIN_INFLIGHT START: joiner=%s req=%u (prev=%s curr=%s)", pj.node_name, pj.request_id,
+                state->config.prev->node_name, state->config.current->node_name
+            );
+            join_fsm_start_inflight(state, &pj);
+            if (join_fsm_inflight_tick(state, unicast_socket) < 0) {
+                return -1;
+            }
+        }
+        return 0;
+    }
+
+    if (ring_on_token(state, unicast_socket) < 0) {
+        return -1;
+    }
     return 0;
 }
 
