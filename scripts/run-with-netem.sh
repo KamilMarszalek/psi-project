@@ -96,7 +96,7 @@ if [ "${#services[@]}" -eq 0 ]; then
 fi
 
 echo "Streaming logs to $log_dir"
-"${docker_compose_cmd[@]}" -f "$compose_file" logs -f --no-color >"$log_dir/combined" 2>&1 &
+"${docker_compose_cmd[@]}" -f "$compose_file" logs -f --no-color >"$log_dir/combined.log" 2>&1 &
 log_pids+=("$!")
 
 for service in "${services[@]}"; do
