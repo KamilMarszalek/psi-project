@@ -96,9 +96,12 @@ int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket) {
     }
 
     if (state->join_inflight.retries >= JOIN_ACCEPT_RETRIES) {
-        LOG_ERROR("Join accept retries exhausted for request id %u", state->join_inflight.request_id);
-        state->join_inflight.active = 0;
-        return 0;
+        LOG_WARN(
+            "Join accept retries exhausted for request id %u, keeping token and retrying",
+            state->join_inflight.request_id
+        );
+        state->join_inflight.retries = 0;
+        state->join_inflight.last_sent = 0;
     }
 
     join_accept_t accept = {0};
@@ -161,6 +164,17 @@ int join_fsm_handle_accept_unicast(ring_state_t* state, const join_accept_t* acc
 
     if (strncmp(me, accept->new_name, MAX_NODE_NAME_SIZE) == 0) {
         if (!state->joined && accept->header.request_id != state->join_request_id) {
+            return 0;
+        }
+        if (state->joined) {
+            if (accept->header.request_id != state->join_request_id) {
+                return 0;
+            }
+            if (send_join_confirm(
+                    unicast_socket, accept->before_name, accept->before_unicast_port, accept->header.request_id, me
+                ) < 0) {
+                LOG_WARN("Failed to send JOIN_CONFIRM_U for duplicate JOIN_ACCEPT_U");
+            }
             return 0;
         }
         strncpy(state->config.prev->node_name, accept->prev_name, MAX_NODE_NAME_SIZE - 1);
@@ -234,7 +248,9 @@ void join_fsm_handle_confirm_unicast(ring_state_t* state, const join_confirm_t* 
 
         state->last_seen_topo_version++;
         state->token_in.topo_version = state->last_seen_topo_version;
-        state->join_state = (join_state_t) {0};
+
+        remove_pending_join(&state->join_state, state->join_inflight.joiner.node_name);
+        join_state_record_completed(&state->join_state, &state->join_inflight.joiner);
 
         state->join_inflight.active = 0;
         state->join_inflight.got_confirm_prev = 0;

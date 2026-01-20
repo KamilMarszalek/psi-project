@@ -30,6 +30,9 @@ static void apply_accept_if_relevant(ring_state_t* ring_state, const join_accept
     const char* me = ring_state->config.current->node_name;
 
     if (strncmp(me, accept->new_name, MAX_NODE_NAME_SIZE) == 0) {
+        if (ring_state->joined) {
+            return;
+        }
         if (!ring_state->joined && accept->header.request_id != ring_state->join_request_id) {
             return;
         }
@@ -174,6 +177,25 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             request_host.header.request_id = request_id;
             request_host.header.type = JOIN_REQUEST;
             request_host.header.magic = JOIN_MAGIC;
+
+            if (ring_state->join_inflight.active &&
+                strncmp(ring_state->join_inflight.joiner.node_name, request_host.node_name, MAX_NODE_NAME_SIZE) == 0) {
+                LOG_INFO(
+                    "Ignoring JOIN_REQUEST id=%u name=%s (already inflight)",
+                    request_host.header.request_id,
+                    request_host.node_name
+                );
+                return 0;
+            }
+
+            if (join_state_is_completed(&ring_state->join_state, &request_host)) {
+                LOG_INFO(
+                    "Ignoring JOIN_REQUEST id=%u name=%s (already joined)",
+                    request_host.header.request_id,
+                    request_host.node_name
+                );
+                return 0;
+            }
 
             int rc = add_pending_join(&ring_state->join_state, &request_host, from.sin_addr);
             if (rc == 0) {

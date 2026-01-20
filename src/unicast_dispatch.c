@@ -17,9 +17,16 @@ static void handle_token_unicast(ring_state_t* state, const unicast_msg_t* msg) 
     memcpy(&state->token_in, msg->payload, sizeof(token_t));
     if (state->joined) {
         if (state->token_in.topo_version > state->last_seen_topo_version) {
-            state->last_seen_topo_version = state->token_in.topo_version;
-            state->join_state = (join_state_t){0};
-            LOG_INFO("Topo version advanced to %u, cleared pending joins", state->last_seen_topo_version);
+            uint32_t old_topo = state->last_seen_topo_version;
+            uint32_t new_topo = state->token_in.topo_version;
+            uint32_t delta = new_topo - old_topo;
+            size_t pending_before = state->join_state.count;
+            size_t removed = drop_oldest_pending_joins(&state->join_state, pending_before);
+            state->last_seen_topo_version = new_topo;
+            LOG_INFO(
+                "Topo version advanced to %u (delta=%u), cleared pending joins: removed=%zu",
+                state->last_seen_topo_version, delta, removed
+            );
         }
         state->have_token = 1;
         LOG_INFO("Received token via unicast\n");
