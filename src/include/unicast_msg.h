@@ -6,8 +6,6 @@
 
 typedef enum {
     UMSG_TOKEN = 1,
-    UMSG_JOIN_ACCEPT = 2,
-    UMSG_JOIN_CONFIRM = 3,
 } unicast_msg_type_t;
 
 typedef struct {
