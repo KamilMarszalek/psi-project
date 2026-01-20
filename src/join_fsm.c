@@ -33,6 +33,36 @@ static int send_join_confirm(
     return unicast_send(unicast_socket, &msg, &coord);
 }
 
+static void build_join_accept_messages(const ring_state_t* state, join_accept_t* accept, join_accept_t* accept_wire) {
+    *accept = (join_accept_t){0};
+    accept->header.request_id = state->join_inflight.request_id;
+    strncpy(accept->new_name, state->join_inflight.joiner.node_name, MAX_NODE_NAME_SIZE - 1);
+    accept->new_unicast_port = state->join_inflight.joiner.unicast_port;
+
+    strncpy(accept->before_name, state->config.current->node_name, MAX_NODE_NAME_SIZE - 1);
+    accept->before_unicast_port = state->config.current->unicast_port;
+
+    strncpy(accept->prev_name, state->config.prev->node_name, MAX_NODE_NAME_SIZE - 1);
+    accept->prev_unicast_port = state->config.prev->unicast_port;
+    accept->new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    accept->before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    accept->prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+
+    *accept_wire = (join_accept_t){0};
+    accept_wire->header.magic = htonl(JOIN_MAGIC);
+    accept_wire->header.type = htons(JOIN_ACCEPT);
+    accept_wire->header.request_id = htonl(accept->header.request_id);
+    strncpy(accept_wire->new_name, accept->new_name, MAX_NODE_NAME_SIZE - 1);
+    strncpy(accept_wire->before_name, accept->before_name, MAX_NODE_NAME_SIZE - 1);
+    strncpy(accept_wire->prev_name, accept->prev_name, MAX_NODE_NAME_SIZE - 1);
+    accept_wire->new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    accept_wire->before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    accept_wire->prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    accept_wire->new_unicast_port = htons(accept->new_unicast_port);
+    accept_wire->before_unicast_port = htons(accept->before_unicast_port);
+    accept_wire->prev_unicast_port = htons(accept->prev_unicast_port);
+}
+
 int join_fsm_request_tick(ring_state_t* state, int broadcast_socket) {
     if (state->joined) {
         return 0;
@@ -104,33 +134,9 @@ int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket) {
         state->join_inflight.last_sent = 0;
     }
 
-    join_accept_t accept = {0};
-    accept.header.request_id = state->join_inflight.request_id;
-    strncpy(accept.new_name, state->join_inflight.joiner.node_name, MAX_NODE_NAME_SIZE - 1);
-    accept.new_unicast_port = state->join_inflight.joiner.unicast_port;
-
-    strncpy(accept.before_name, state->config.current->node_name, MAX_NODE_NAME_SIZE - 1);
-    accept.before_unicast_port = state->config.current->unicast_port;
-
-    strncpy(accept.prev_name, state->config.prev->node_name, MAX_NODE_NAME_SIZE - 1);
-    accept.prev_unicast_port = state->config.prev->unicast_port;
-    accept.new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-    accept.before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-    accept.prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-
-    join_accept_t accept_wire = {0};
-    accept_wire.header.magic = htonl(JOIN_MAGIC);
-    accept_wire.header.type = htons(JOIN_ACCEPT);
-    accept_wire.header.request_id = htonl(accept.header.request_id);
-    strncpy(accept_wire.new_name, accept.new_name, MAX_NODE_NAME_SIZE - 1);
-    strncpy(accept_wire.before_name, accept.before_name, MAX_NODE_NAME_SIZE - 1);
-    strncpy(accept_wire.prev_name, accept.prev_name, MAX_NODE_NAME_SIZE - 1);
-    accept_wire.new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-    accept_wire.before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-    accept_wire.prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-    accept_wire.new_unicast_port = htons(accept.new_unicast_port);
-    accept_wire.before_unicast_port = htons(accept.before_unicast_port);
-    accept_wire.prev_unicast_port = htons(accept.prev_unicast_port);
+    join_accept_t accept;
+    join_accept_t accept_wire;
+    build_join_accept_messages(state, &accept, &accept_wire);
 
     unicast_msg_t msg = {.type = UMSG_JOIN_ACCEPT, .payload_len = sizeof(accept_wire)};
     memcpy(msg.payload, &accept_wire, sizeof(accept_wire));
