@@ -67,6 +67,52 @@ int pop_oldest_pending_join(join_state_t* state, pending_join_t* out) {
     return -1;
 }
 
+size_t drop_oldest_pending_joins(join_state_t* state, size_t max_remove) {
+    size_t removed = 0;
+    pending_join_t ignored;
+
+    while (removed < max_remove) {
+        if (pop_oldest_pending_join(state, &ignored) != 0) {
+            break;
+        }
+        removed++;
+    }
+
+    return removed;
+}
+
+int join_state_is_completed(const join_state_t* state, const join_request_t* request) {
+    for (size_t i = 0; i < state->completed_count; i++) {
+        if (strncmp(state->completed[i].node_name, request->node_name, MAX_NODE_NAME_SIZE) == 0) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void join_state_record_completed(join_state_t* state, const pending_join_t* joiner) {
+    for (size_t i = 0; i < state->completed_count; i++) {
+        if (strncmp(state->completed[i].node_name, joiner->node_name, MAX_NODE_NAME_SIZE) == 0) {
+            state->completed[i].request_id = joiner->request_id;
+            return;
+        }
+    }
+
+    size_t idx = state->completed_count;
+    if (idx >= MAX_PENDING_JOINS) {
+        for (size_t i = 1; i < state->completed_count; i++) {
+            state->completed[i - 1] = state->completed[i];
+        }
+        idx = state->completed_count - 1;
+    } else {
+        state->completed_count++;
+    }
+
+    state->completed[idx].request_id = joiner->request_id;
+    strncpy(state->completed[idx].node_name, joiner->node_name, MAX_NODE_NAME_SIZE - 1);
+    state->completed[idx].node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+}
+
 void prune_joins(join_state_t* state, time_t now, int ttl_seconds) {
     for (size_t i = 0; i < MAX_PENDING_JOINS; i++) {
         if (state->joins[i].used && (now - state->joins[i].last_seen) > ttl_seconds) {

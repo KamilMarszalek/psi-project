@@ -49,6 +49,11 @@ typedef struct {
 } join_confirm_t;
 
 typedef struct {
+    uint32_t request_id;
+    char node_name[MAX_NODE_NAME_SIZE];
+} completed_join_t;
+
+typedef struct {
     int used;
     uint32_t request_id;
     char node_name[MAX_NODE_NAME_SIZE];
@@ -74,10 +79,15 @@ typedef struct {
 typedef struct {
     pending_join_t joins[MAX_PENDING_JOINS];
     size_t count;
+    completed_join_t completed[MAX_PENDING_JOINS];
+    size_t completed_count;
 } join_state_t;
 
 int add_pending_join(join_state_t* state, const join_request_t* request, struct in_addr ip);
 int remove_pending_join(join_state_t* state, const char* node_name);
 int pop_oldest_pending_join(join_state_t* state, pending_join_t* out);
+size_t drop_oldest_pending_joins(join_state_t* state, size_t max_remove);
+int join_state_is_completed(const join_state_t* state, const join_request_t* request);
+void join_state_record_completed(join_state_t* state, const pending_join_t* joiner);
 void prune_joins(join_state_t* state, time_t now, int ttl_seconds);
 #endif

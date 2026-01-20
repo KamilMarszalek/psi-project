@@ -18,7 +18,7 @@
 #define JOIN_REQUEST_RETRIES (1 << 16)
 
 
-#define JOIN_PENDING_TTL_S 20
+#define JOIN_PENDING_TTL_S 200
 
 #define MAX_UNICAST_PAYLOAD 512
 #endif
