@@ -25,12 +25,14 @@ target_link_libraries(join PUBLIC logger)
 add_library(broadcast STATIC broadcast.c)
 target_link_libraries(broadcast PUBLIC broadcast_collect_targets logger)
 
-add_library(ring STATIC ring.c)
+add_library(ring STATIC ring.c join_fsm.c unicast_dispatch.c)
 target_link_libraries(ring PUBLIC unicast broadcast join logger)
+target_include_directories(ring PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}
+)
 
 add_executable(core core.c)
 target_link_libraries(core PRIVATE ring cli)
 
 add_executable(writer writer.c)
 target_link_libraries(writer PRIVATE cli)
-
