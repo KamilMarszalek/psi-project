@@ -10,6 +10,7 @@ typedef enum {
     JOIN_REQUEST = 1,
     JOIN_ACCEPT = 2,
     JOIN_ACK = 3,
+    JOIN_COMMIT = 4,
 } join_message_type_t;
 
 
@@ -19,6 +20,12 @@ typedef struct {
     uint16_t reserved;
     uint32_t request_id;
 } join_message_header_t;
+
+typedef struct {
+    join_message_header_t header;
+    char new_name[MAX_NODE_NAME_SIZE];
+    uint32_t topo_version;
+} join_commit_t;
 
 typedef struct {
     join_message_header_t header;
@@ -90,4 +97,6 @@ size_t drop_oldest_pending_joins(join_state_t* state, size_t max_remove);
 int join_state_is_completed(const join_state_t* state, const join_request_t* request);
 void join_state_record_completed(join_state_t* state, const pending_join_t* joiner);
 void prune_joins(join_state_t* state, time_t now, int ttl_seconds);
+void join_state_mark_completed_and_prune_pending(join_state_t* state, const char* node_name, uint32_t request_id);
+
 #endif

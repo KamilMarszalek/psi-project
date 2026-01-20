@@ -224,7 +224,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
 
             join_accept_t accept_host;
             memset(&accept_host, 0, sizeof(accept_host));
-            accept_host.header.request_id = request_id; // już masz request_id=ntohl(header.request_id) wyżej
+            accept_host.header.request_id = request_id;
             accept_host.header.type = JOIN_ACCEPT;
             accept_host.header.magic = JOIN_MAGIC;
 
@@ -236,6 +236,11 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             accept_host.before_unicast_port = ntohs(join_accept.before_unicast_port);
             accept_host.prev_unicast_port = ntohs(join_accept.prev_unicast_port);
 
+            join_state_mark_completed_and_prune_pending(
+                &ring_state->join_state, accept_host.new_name, accept_host.header.request_id
+            );
+
+
             LOG_INFO(
                 "RECV JOIN_ACCEPT: req=%u new=%s before=%s prev=%s", accept_host.header.request_id,
                 accept_host.new_name, accept_host.before_name, accept_host.prev_name
@@ -245,7 +250,6 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             apply_accept_if_relevant(ring_state, &accept_host, &did_apply);
             LOG_INFO("APPLY JOIN_ACCEPT: did_apply=%d", did_apply);
 
-            // Dokumentacja: po zastosowaniu ACCEPT odsyłamy ACK (broadcast)
             if (did_apply) {
                 if (broadcast_send_join_ack(
                         broadcast_socket, accept_host.header.request_id, ring_state->config.current->node_name
@@ -281,9 +285,37 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             strncpy(ack_host.from_name, ack_wire.from_name, MAX_NODE_NAME_SIZE - 1);
             ack_host.from_name[MAX_NODE_NAME_SIZE - 1] = '\0';
 
-            join_fsm_handle_ack_broadcast(ring_state, &ack_host);
+            join_fsm_handle_ack_broadcast(ring_state, &ack_host, broadcast_socket);
             return 0;
         }
+
+        case JOIN_COMMIT: {
+            if ((size_t) n_recv != sizeof(join_commit_t)) {
+                LOG_ERROR("Received invalid join commit size: %zd", n_recv);
+                return 0;
+            }
+
+            join_commit_t wire;
+            memcpy(&wire, buffer, sizeof(wire));
+
+            if (ntohl(wire.header.magic) != JOIN_MAGIC || ntohs(wire.header.type) != JOIN_COMMIT) {
+                return 0;
+            }
+
+            uint32_t req = ntohl(wire.header.request_id);
+            uint32_t topo = ntohl(wire.topo_version);
+            wire.new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+
+            join_state_mark_completed_and_prune_pending(&ring_state->join_state, wire.new_name, req);
+
+            if (topo > ring_state->last_seen_topo_version) {
+                ring_state->last_seen_topo_version = topo;
+            }
+
+            LOG_INFO("JOIN_COMMIT: req=%u new=%s topo=%u", req, wire.new_name, topo);
+            return 0;
+        }
+
 
         default:
             LOG_ERROR("Received broadcast message with unknown type: %u", type);
@@ -327,7 +359,6 @@ int broadcast_send_join_accept(int broadcast_socket, const join_accept_t* accept
     wire.before_unicast_port = htons(accept_host->before_unicast_port);
     wire.prev_unicast_port = htons(accept_host->prev_unicast_port);
 
-    // Uwaga: używa Twojej istniejącej send_to_all_targets(...)
     if (send_to_all_targets(broadcast_socket, &wire, sizeof(wire), targets, targets_count) < 0) {
         LOG_ERROR("sending join accept");
         return -1;
@@ -346,6 +377,25 @@ int broadcast_send_join_ack(int broadcast_socket, uint32_t request_id, const cha
 
     if (send_to_all_targets(broadcast_socket, &wire, sizeof(wire), targets, targets_count) < 0) {
         LOG_ERROR("sending join ack");
+        return -1;
+    }
+    return 0;
+}
+
+
+int broadcast_send_join_commit(int broadcast_socket, uint32_t request_id, const char* new_name, uint32_t topo_version) {
+    join_commit_t wire = {0};
+    wire.header.magic = htonl(JOIN_MAGIC);
+    wire.header.type = htons(JOIN_COMMIT);
+    wire.header.request_id = htonl(request_id);
+
+    strncpy(wire.new_name, new_name, MAX_NODE_NAME_SIZE - 1);
+    wire.new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+
+    wire.topo_version = htonl(topo_version);
+
+    if (send_to_all_targets(broadcast_socket, &wire, sizeof(wire), targets, targets_count) < 0) {
+        LOG_ERROR("sending join commit");
         return -1;
     }
     return 0;

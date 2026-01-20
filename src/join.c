@@ -121,3 +121,15 @@ void prune_joins(join_state_t* state, time_t now, int ttl_seconds) {
         }
     }
 }
+
+void join_state_mark_completed_and_prune_pending(join_state_t* state, const char* node_name, uint32_t request_id) {
+    pending_join_t tmp = {0};
+    tmp.request_id = request_id;
+    strncpy(tmp.node_name, node_name, MAX_NODE_NAME_SIZE - 1);
+    tmp.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    tmp.unicast_port = 0;
+
+    join_state_record_completed(state, &tmp);
+
+    remove_pending_join(state, node_name);
+}
