@@ -30,7 +30,7 @@ static int maybe_send_initial_token(const ring_state_t* state, int unicast_socke
 static int handle_broadcast_if_ready(int broadcast_socket, ring_state_t* state, const fd_set* rfds);
 static int handle_cli_if_ready(int cli_fd, ring_state_t* state, const fd_set* rfds);
 static int handle_unicast_if_ready(int unicast_socket, ring_state_t* state, const fd_set* rfds);
-static int handle_token_if_ready(ring_state_t* state, int unicast_socket);
+static int handle_token_if_ready(ring_state_t* state, int unicast_socket, int broadcast_socket);
 
 
 int ring_initialize(route_config_t* config, descriptors_t* descriptors, int joined) {
@@ -94,9 +94,10 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
             break;
         }
 
-        if (join_fsm_inflight_tick(&state, descriptors.unicast_socket) < 0) {
+        if (join_fsm_inflight_tick(&state, descriptors.broadcast_socket) < 0) {
             break;
         }
+
 
         if (ret < 0) {
             if (errno == EINTR) {
@@ -118,7 +119,7 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
             break;
         }
 
-        if (handle_token_if_ready(&state, descriptors.unicast_socket) < 0) {
+        if (handle_token_if_ready(&state, descriptors.unicast_socket, descriptors.broadcast_socket) < 0) {
             break;
         }
     }
@@ -300,7 +301,7 @@ static int handle_unicast_if_ready(int unicast_socket, ring_state_t* state, cons
     return 0;
 }
 
-static int handle_token_if_ready(ring_state_t* state, int unicast_socket) {
+static int handle_token_if_ready(ring_state_t* state, int unicast_socket, int broadcast_socket) {
     if (!state->joined || !state->have_token) {
         return 0;
     }
@@ -317,8 +318,10 @@ static int handle_token_if_ready(ring_state_t* state, int unicast_socket) {
                 "JOIN_INFLIGHT START: joiner=%s req=%u (prev=%s curr=%s)", pj.node_name, pj.request_id,
                 state->config.prev->node_name, state->config.current->node_name
             );
+
             join_fsm_start_inflight(state, &pj);
-            if (join_fsm_inflight_tick(state, unicast_socket) < 0) {
+
+            if (join_fsm_inflight_tick(state, broadcast_socket) < 0) {
                 return -1;
             }
         }
@@ -330,6 +333,7 @@ static int handle_token_if_ready(ring_state_t* state, int unicast_socket) {
     }
     return 0;
 }
+
 
 static int set_select_timeout(const ring_state_t* state, struct timeval* timeout) {
     if (rudp_has_pending()) {
