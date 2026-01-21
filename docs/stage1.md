@@ -291,8 +291,21 @@ Główna funkcja znajduje się w pliku ring.c. Jest to pętla zdarzeń wykorzyst
    -  przekazuje token dalej
 
 
-Inną ważną funkcją jest unicast_dispatch_message, która rozpoznaje typ otrzymanej wiadomości unicast i wywołuje odpowiednią funkcję obsługi (np. handle_token_unicast, handle_join_accept_u).
+Inną ważną funkcją jest unicast_dispatch_message, która rozpoznaje typ otrzymanej wiadomości unicast i wywołuje odpowiednią funkcję obsługi (np. handle_token_unicast, handle_join_accept_u). Warto jeszcze opisać jak wygląda typ unicast_msg_t:
 ```c
+typedef enum {
+    UMSG_TOKEN = 1,
+    UMSG_JOIN_ACCEPT_U = 2,
+    UMSG_JOIN_ACK_U = 4,
+    UMSG_JOIN_ACK_ACK_U = 5,
+} unicast_msg_type_t;
+
+
+typedef struct {
+    uint16_t type;
+    uint16_t payload_len;
+    uint8_t payload[MAX_UNICAST_PAYLOAD];
+} unicast_msg_t;
 int unicast_dispatch_message(ring_state_t* state, const unicast_msg_t* msg, int unicast_socket) {
     if (msg->type == UMSG_TOKEN) {
         handle_token_unicast(state, msg);
