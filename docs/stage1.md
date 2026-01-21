@@ -230,13 +230,11 @@ Wersjonowanie - razem z tokenem będzie przesyłana aktualna wersja pierścienia
    - Zawiera scenariusze testowe (np. skrypty uruchamiające kilka węzłów w Docker Compose).  
    - Odpowiada za generowanie logów wykorzystywanych potem w sprawozdaniu.
 
-## Zarys koncepcji implementacji
+## Wykorzystane technologie i narzędzia
 
 - Język programowania: C
 - Biblioteki: pthread, socket, arpa/inet, podstawowe biblioteki do pracy z językiem C np. stdio.h, stdlib.h, string.h, time.h
-- Narzędzia: CMake, Docker Compose, Docker
-
-Projekt zostanie przetestowany na serwerze Bigubu.
+- Narzędzia: CMake, Docker Compose, Docker, netem
 
 ## Opis najważniejszych rozwiązań funkcjonalnych
 W końcowej wersji typ odpowiadający tokenowi wygląda następująco:
