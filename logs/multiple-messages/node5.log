@@ -1,0 +1,30 @@
+z11_node5  | [INFO] 21-01-2026 21:26:56: Node initalized, waiting for UDP packets
+z11_node5  | [INFO] 21-01-2026 21:27:01: Received token via unicast
+z11_node5  | [INFO] 21-01-2026 21:27:01: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 21-01-2026 21:27:08: Received token via unicast
+z11_node5  | [INFO] 21-01-2026 21:27:08: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 21-01-2026 21:27:08: Received token for me: 4 do 5
+z11_node5  | 
+z11_node5  | [INFO] 21-01-2026 21:27:15: Received token via unicast
+z11_node5  | [INFO] 21-01-2026 21:27:15: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 21-01-2026 21:27:15: Full token received for another node - forwarding
+z11_node5  | 
+z11_node5  | [INFO] 21-01-2026 21:27:22: Received token via unicast
+z11_node5  | [INFO] 21-01-2026 21:27:22: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 21-01-2026 21:27:22: Received token for me: 1 do 5
+z11_node5  | 
+z11_node5  | [INFO] 21-01-2026 21:27:29: Received token via unicast
+z11_node5  | [INFO] 21-01-2026 21:27:29: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 21-01-2026 21:27:29: Full token received for another node - forwarding
+z11_node5  | 
+z11_node5  | [INFO] 21-01-2026 21:27:36: Received token via unicast
+z11_node5  | [INFO] 21-01-2026 21:27:36: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 21-01-2026 21:27:36: Full token received for another node - forwarding
+z11_node5  | 
+z11_node5  | [INFO] 21-01-2026 21:27:43: Received token via unicast
+z11_node5  | [INFO] 21-01-2026 21:27:43: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 21-01-2026 21:27:43: Full token received for another node - forwarding
+z11_node5  | 
+z11_node5  | [INFO] 21-01-2026 21:27:50: Received token via unicast
+z11_node5  | [INFO] 21-01-2026 21:27:50: TOKEN: have_token=1 pending=0 inflight=0
+
