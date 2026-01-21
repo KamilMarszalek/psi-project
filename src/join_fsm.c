@@ -171,7 +171,7 @@ int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket, int broadcas
     msg.payload_len = sizeof(wire);
     memcpy(msg.payload, &wire, sizeof(wire));
 
-    LOG_INFO("SENDING JOIN_ACCEPT_U: new=%s before=%s prev=%s", accept.new_name, accept.before_name, accept.prev_name);
+    LOG_DEBUG("SENDING JOIN_ACCEPT_U: new=%s before=%s prev=%s", accept.new_name, accept.before_name, accept.prev_name);
 
     int send_error = 0;
     if (!state->join_inflight.got_confirm_joiner) {
@@ -220,7 +220,7 @@ void join_fsm_handle_ack_broadcast(ring_state_t* state, const join_ack_t* ack, i
         state->join_inflight.got_confirm_joiner = 1;
     }
 
-    LOG_INFO(
+    LOG_DEBUG(
         "RECV JOIN_ACK (broadcast): req=%u from=%s got_prev=%d got_joiner=%d", ack->header.request_id, ack->from_name,
         state->join_inflight.got_confirm_prev, state->join_inflight.got_confirm_joiner
     );

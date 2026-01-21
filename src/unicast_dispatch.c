@@ -34,7 +34,7 @@ static int update_topology_on_token(ring_state_t* state) {
     size_t removed = drop_oldest_pending_joins(&state->join_state, pending_before);
 
     state->last_seen_topo_version = new_topo;
-    LOG_INFO(
+    LOG_DEBUG(
         "Topo version advanced to %u (delta=%u), cleared pending joins: removed=%zu", state->last_seen_topo_version,
         delta, removed
     );
@@ -48,7 +48,7 @@ static void clear_pending_joins_on_token(ring_state_t* state) {
     }
 
     size_t removed = drop_oldest_pending_joins(&state->join_state, pending_before);
-    LOG_INFO("Cleared pending joins on token receive: removed=%zu", removed);
+    LOG_DEBUG("Cleared pending joins on token receive: removed=%zu", removed);
 }
 
 static void handle_token_unicast(ring_state_t* state, const unicast_msg_t* msg) {
@@ -119,13 +119,13 @@ static int handle_join_accept_u(ring_state_t* st, const unicast_msg_t* msg, int 
 
     join_state_mark_completed_and_prune_pending(&st->join_state, accept.new_name, accept.header.request_id);
 
-    LOG_INFO(
+    LOG_DEBUG(
         "RECV JOIN_ACCEPT_U: req=%u new=%s before=%s prev=%s", accept.header.request_id, accept.new_name,
         accept.before_name, accept.prev_name
     );
 
     int did_apply = apply_accept_if_relevant(st, &accept);
-    LOG_INFO("APPLY JOIN_ACCEPT_U: did_apply=%d", did_apply);
+    LOG_DEBUG("APPLY JOIN_ACCEPT_U: did_apply=%d", did_apply);
 
     if (did_apply) {
         st->ack_sender.active = 1;
@@ -154,7 +154,7 @@ static int handle_join_accept_u(ring_state_t* st, const unicast_msg_t* msg, int 
         coord.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
         coord.unicast_port = accept.before_unicast_port;
 
-        LOG_INFO("SEND JOIN_ACK_U req=%u to=%s:%u", accept.header.request_id, coord.node_name, coord.unicast_port);
+        LOG_DEBUG("SEND JOIN_ACK_U req=%u to=%s:%u", accept.header.request_id, coord.node_name, coord.unicast_port);
         if (unicast_send_limited(
                 unicast_socket, &ack_msg, &coord, JOIN_ACCEPT_ACK_TIMEOUT_USEC, JOIN_ACCEPT_ACK_MAX_ATTEMPTS
             ) == 0) {
@@ -190,7 +190,9 @@ static int handle_join_ack_u(ring_state_t* st, const unicast_msg_t* msg, int uni
             st->join_inflight.got_confirm_joiner = 1;
             matched_joiner = 1;
         }
-        LOG_INFO("RECV JOIN_ACK_U req=%u from=%s prev=%d joiner=%d", req, wire.from_name, matched_prev, matched_joiner);
+        LOG_DEBUG(
+            "RECV JOIN_ACK_U req=%u from=%s prev=%d joiner=%d", req, wire.from_name, matched_prev, matched_joiner
+        );
         join_fsm_maybe_complete(st, st->broadcast_socket);
     }
 
@@ -241,7 +243,7 @@ static void handle_join_ack_ack_u(ring_state_t* st, const unicast_msg_t* msg) {
 
     if (st->ack_sender.active && st->ack_sender.request_id == req) {
         st->ack_sender.got_ack_ack = 1;
-        LOG_INFO("RECV JOIN_ACK_ACK_U req=%u => stop ACK retries", req);
+        LOG_DEBUG("RECV JOIN_ACK_ACK_U req=%u => stop ACK retries", req);
     }
 }
 

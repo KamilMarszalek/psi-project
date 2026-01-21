@@ -465,7 +465,7 @@ static int join_ack_sender_tick(ring_state_t* st, int unicast_socket) {
     coord.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
     coord.unicast_port = st->ack_sender.coord_unicast_port;
 
-    LOG_INFO("SEND JOIN_ACK_U req=%u to=%s:%u", st->ack_sender.request_id, coord.node_name, coord.unicast_port);
+    LOG_DEBUG("SEND JOIN_ACK_U req=%u to=%s:%u", st->ack_sender.request_id, coord.node_name, coord.unicast_port);
     if (unicast_send_limited(unicast_socket, &msg, &coord, JOIN_ACCEPT_ACK_TIMEOUT_USEC, JOIN_ACCEPT_ACK_MAX_ATTEMPTS) <
         0) {}
 
