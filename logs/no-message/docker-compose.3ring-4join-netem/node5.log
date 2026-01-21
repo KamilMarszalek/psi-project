@@ -1,0 +1,6 @@
+z11_node5  | [INFO] Applying netem: delay=1000ms jitter=500ms loss=50%
+z11_node5  | [INFO] Delaying start by 4s
+z11_node5  | [INFO] 21-01-2026 19:10:22: Node initalized, waiting for UDP packets
+z11_node5  | [INFO] 21-01-2026 19:11:01: JOIN_REQUEST id=3697279331 name=node4 uni=5000 from=172.18.0.6
+z11_node5  | [INFO] 21-01-2026 19:11:11: JOIN_REQUEST id=3697279331 name=node4 uni=5000 from=172.18.0.6
+

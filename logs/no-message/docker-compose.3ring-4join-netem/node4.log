@@ -1,0 +1,4 @@
+z11_node4  | [INFO] Applying netem: delay=1000ms jitter=500ms loss=50%
+z11_node4  | [INFO] Delaying start by 2s
+z11_node4  | [INFO] 21-01-2026 19:10:20: Node initalized, waiting for UDP packets
+

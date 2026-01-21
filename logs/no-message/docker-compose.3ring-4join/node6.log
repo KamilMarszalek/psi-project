@@ -1,0 +1,6 @@
+z11_node6  | [INFO] Delaying start by 6s
+z11_node6  | [INFO] 21-01-2026 19:08:42: Node initalized, waiting for UDP packets
+z11_node6  | [INFO] 21-01-2026 19:09:01: JOIN_COMMIT: req=3591090919 new=node6 topo=4
+z11_node6  | [INFO] 21-01-2026 19:09:08: Received token via unicast
+z11_node6  | [INFO] 21-01-2026 19:09:08: TOKEN: have_token=1 pending=0 inflight=0
+
