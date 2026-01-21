@@ -1,16 +1,16 @@
 z11_node2  | [INFO] Applying netem: delay=1000ms jitter=500ms loss=50%
-z11_node2  | [INFO] 21-01-2026 19:54:45: Node initalized, waiting for UDP packets
-z11_node2  | [INFO] 21-01-2026 19:54:48: JOIN_REQUEST id=4239188680 name=node4 uni=5000 from=172.18.0.5
-z11_node2  | [INFO] 21-01-2026 19:54:52: JOIN_REQUEST id=882587745 name=node6 uni=5000 from=172.18.0.6
-z11_node2  | [INFO] 21-01-2026 19:55:00: JOIN_REQUEST id=1332109065 name=node5 uni=5000 from=172.18.0.4
-z11_node2  | [INFO] 21-01-2026 19:55:02: JOIN_REQUEST id=882587745 name=node6 uni=5000 from=172.18.0.6
-z11_node2  | [INFO] 21-01-2026 19:55:04: JOIN_COMMIT: req=4239188680 new=node4 topo=1
-z11_node2  | [INFO] 21-01-2026 19:55:08: JOIN_REQUEST id=3305714384 name=node3 uni=5000 from=172.18.0.7
-z11_node2  | [INFO] 21-01-2026 19:55:17: JOIN_COMMIT: req=882587745 new=node6 topo=2
-z11_node2  | [INFO] 21-01-2026 19:55:18: JOIN_REQUEST id=3305714384 name=node3 uni=5000 from=172.18.0.7
-z11_node2  | [INFO] 21-01-2026 19:55:28: JOIN_REQUEST id=3305714384 name=node3 uni=5000 from=172.18.0.7
-z11_node2  | [INFO] 21-01-2026 19:55:49: JOIN_COMMIT: req=1332109065 new=node5 topo=3
-z11_node2  | [INFO] 21-01-2026 19:55:58: JOIN_REQUEST id=3305714384 name=node3 uni=5000 from=172.18.0.7
-z11_node2  | [INFO] 21-01-2026 19:56:09: Received token via unicast
-z11_node2  | [INFO] 21-01-2026 19:56:09: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 20-01-2026 19:54:45: Node initalized, waiting for UDP packets
+z11_node2  | [INFO] 20-01-2026 19:54:48: JOIN_REQUEST id=4239188680 name=node4 uni=5000 from=172.18.0.5
+z11_node2  | [INFO] 20-01-2026 19:54:52: JOIN_REQUEST id=882587745 name=node6 uni=5000 from=172.18.0.6
+z11_node2  | [INFO] 20-01-2026 19:55:00: JOIN_REQUEST id=1332109065 name=node5 uni=5000 from=172.18.0.4
+z11_node2  | [INFO] 20-01-2026 19:55:02: JOIN_REQUEST id=882587745 name=node6 uni=5000 from=172.18.0.6
+z11_node2  | [INFO] 20-01-2026 19:55:04: JOIN_COMMIT: req=4239188680 new=node4 topo=1
+z11_node2  | [INFO] 20-01-2026 19:55:08: JOIN_REQUEST id=3305714384 name=node3 uni=5000 from=172.18.0.7
+z11_node2  | [INFO] 20-01-2026 19:55:17: JOIN_COMMIT: req=882587745 new=node6 topo=2
+z11_node2  | [INFO] 20-01-2026 19:55:18: JOIN_REQUEST id=3305714384 name=node3 uni=5000 from=172.18.0.7
+z11_node2  | [INFO] 20-01-2026 19:55:28: JOIN_REQUEST id=3305714384 name=node3 uni=5000 from=172.18.0.7
+z11_node2  | [INFO] 20-01-2026 19:55:49: JOIN_COMMIT: req=1332109065 new=node5 topo=3
+z11_node2  | [INFO] 20-01-2026 19:55:58: JOIN_REQUEST id=3305714384 name=node3 uni=5000 from=172.18.0.7
+z11_node2  | [INFO] 20-01-2026 19:56:09: Received token via unicast
+z11_node2  | [INFO] 20-01-2026 19:56:09: TOKEN: have_token=1 pending=0 inflight=0
 

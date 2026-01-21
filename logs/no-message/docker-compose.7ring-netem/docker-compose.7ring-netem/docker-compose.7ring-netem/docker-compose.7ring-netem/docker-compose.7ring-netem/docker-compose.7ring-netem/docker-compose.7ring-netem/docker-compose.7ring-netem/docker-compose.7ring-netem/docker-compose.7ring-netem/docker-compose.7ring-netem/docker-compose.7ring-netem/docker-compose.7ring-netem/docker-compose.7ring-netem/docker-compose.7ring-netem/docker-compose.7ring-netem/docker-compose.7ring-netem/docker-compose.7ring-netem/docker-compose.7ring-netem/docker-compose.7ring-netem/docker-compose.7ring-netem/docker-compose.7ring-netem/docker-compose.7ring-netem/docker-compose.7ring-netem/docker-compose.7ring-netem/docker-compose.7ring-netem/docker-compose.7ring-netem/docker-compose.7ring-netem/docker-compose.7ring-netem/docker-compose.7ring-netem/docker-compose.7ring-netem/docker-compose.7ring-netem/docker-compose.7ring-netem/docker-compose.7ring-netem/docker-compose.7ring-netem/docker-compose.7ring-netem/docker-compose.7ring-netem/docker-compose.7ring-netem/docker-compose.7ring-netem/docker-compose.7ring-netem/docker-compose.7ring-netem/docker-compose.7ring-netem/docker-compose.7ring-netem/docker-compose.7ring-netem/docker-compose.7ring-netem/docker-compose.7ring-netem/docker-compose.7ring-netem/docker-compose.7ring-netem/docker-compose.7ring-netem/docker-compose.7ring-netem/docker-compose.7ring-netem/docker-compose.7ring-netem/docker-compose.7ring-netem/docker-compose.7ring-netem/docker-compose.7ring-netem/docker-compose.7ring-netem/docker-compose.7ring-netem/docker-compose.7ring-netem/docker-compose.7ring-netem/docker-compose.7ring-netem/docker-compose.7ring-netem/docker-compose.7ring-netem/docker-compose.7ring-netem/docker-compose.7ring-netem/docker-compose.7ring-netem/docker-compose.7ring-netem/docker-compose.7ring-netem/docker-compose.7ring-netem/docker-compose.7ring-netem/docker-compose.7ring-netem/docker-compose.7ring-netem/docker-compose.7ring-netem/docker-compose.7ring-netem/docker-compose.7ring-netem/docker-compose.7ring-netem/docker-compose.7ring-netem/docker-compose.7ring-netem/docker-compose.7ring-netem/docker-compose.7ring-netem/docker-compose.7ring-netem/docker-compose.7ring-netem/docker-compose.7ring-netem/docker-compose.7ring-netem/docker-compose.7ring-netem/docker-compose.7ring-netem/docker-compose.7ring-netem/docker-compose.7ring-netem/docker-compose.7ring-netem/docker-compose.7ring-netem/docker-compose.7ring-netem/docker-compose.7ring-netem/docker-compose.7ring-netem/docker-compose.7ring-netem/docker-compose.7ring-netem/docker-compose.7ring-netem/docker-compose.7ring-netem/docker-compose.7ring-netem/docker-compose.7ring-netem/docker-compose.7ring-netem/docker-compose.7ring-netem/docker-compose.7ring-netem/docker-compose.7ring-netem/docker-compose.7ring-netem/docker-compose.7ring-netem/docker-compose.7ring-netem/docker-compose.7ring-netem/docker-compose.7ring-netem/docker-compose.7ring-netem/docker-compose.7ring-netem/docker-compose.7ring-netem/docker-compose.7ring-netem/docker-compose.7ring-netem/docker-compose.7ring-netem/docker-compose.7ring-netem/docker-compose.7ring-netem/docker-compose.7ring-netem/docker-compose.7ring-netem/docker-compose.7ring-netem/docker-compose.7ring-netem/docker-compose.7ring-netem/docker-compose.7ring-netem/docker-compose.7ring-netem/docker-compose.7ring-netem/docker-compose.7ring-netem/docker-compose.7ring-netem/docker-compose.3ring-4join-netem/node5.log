@@ -1,8 +1,8 @@
 z11_node5  | [INFO] Applying netem: delay=1000ms jitter=500ms loss=50%
 z11_node5  | [INFO] Delaying start by 4s
-z11_node5  | [INFO] 21-01-2026 19:54:49: Node initalized, waiting for UDP packets
-z11_node5  | [INFO] 21-01-2026 19:55:30: JOIN_REQUEST id=3305714384 name=node3 uni=5000 from=172.18.0.7
-z11_node5  | [INFO] 21-01-2026 19:55:49: JOIN_COMMIT: req=1332109065 new=node5 topo=3
-z11_node5  | [INFO] 21-01-2026 19:56:53: Received token via unicast
-z11_node5  | [INFO] 21-01-2026 19:56:53: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 20-01-2026 19:54:49: Node initalized, waiting for UDP packets
+z11_node5  | [INFO] 20-01-2026 19:55:30: JOIN_REQUEST id=3305714384 name=node3 uni=5000 from=172.18.0.7
+z11_node5  | [INFO] 20-01-2026 19:55:49: JOIN_COMMIT: req=1332109065 new=node5 topo=3
+z11_node5  | [INFO] 20-01-2026 19:56:53: Received token via unicast
+z11_node5  | [INFO] 20-01-2026 19:56:53: TOKEN: have_token=1 pending=0 inflight=0
 

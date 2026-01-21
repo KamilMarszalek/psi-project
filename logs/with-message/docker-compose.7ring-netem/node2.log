@@ -1,15 +1,15 @@
 z11_node2  | [INFO] Applying netem: delay=1000ms jitter=500ms loss=50%
-z11_node2  | [INFO] 21-01-2026 19:36:39: Node initalized, waiting for UDP packets
-z11_node2  | [INFO] 21-01-2026 19:36:54: Received token via unicast
-z11_node2  | [INFO] 21-01-2026 19:36:54: TOKEN: have_token=1 pending=0 inflight=0
-z11_node2  | [INFO] 21-01-2026 19:37:58: Received token via unicast
-z11_node2  | [INFO] 21-01-2026 19:37:58: TOKEN: have_token=1 pending=0 inflight=0
-z11_node2  | [INFO] 21-01-2026 19:37:58: Full token received for another node - forwarding
+z11_node2  | [INFO] 20-01-2026 19:36:39: Node initalized, waiting for UDP packets
+z11_node2  | [INFO] 20-01-2026 19:36:54: Received token via unicast
+z11_node2  | [INFO] 20-01-2026 19:36:54: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 20-01-2026 19:37:58: Received token via unicast
+z11_node2  | [INFO] 20-01-2026 19:37:58: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 20-01-2026 19:37:58: Full token received for another node - forwarding
 z11_node2  | 
-z11_node2  | [INFO] 21-01-2026 19:38:34: Received token via unicast
-z11_node2  | [INFO] 21-01-2026 19:38:34: TOKEN: have_token=1 pending=0 inflight=0
-z11_node2  | [INFO] 21-01-2026 19:39:20: Received token via unicast
-z11_node2  | [INFO] 21-01-2026 19:39:20: TOKEN: have_token=1 pending=0 inflight=0
-z11_node2  | [INFO] 21-01-2026 19:39:49: Received token via unicast
-z11_node2  | [INFO] 21-01-2026 19:39:49: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 20-01-2026 19:38:34: Received token via unicast
+z11_node2  | [INFO] 20-01-2026 19:38:34: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 20-01-2026 19:39:20: Received token via unicast
+z11_node2  | [INFO] 20-01-2026 19:39:20: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 20-01-2026 19:39:49: Received token via unicast
+z11_node2  | [INFO] 20-01-2026 19:39:49: TOKEN: have_token=1 pending=0 inflight=0
 

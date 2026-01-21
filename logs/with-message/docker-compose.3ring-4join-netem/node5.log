@@ -1,20 +1,20 @@
 z11_node5  | [INFO] Applying netem: delay=1000ms jitter=500ms loss=50%
 z11_node5  | [INFO] Delaying start by 4s
-z11_node5  | [INFO] 21-01-2026 19:27:39: Node initalized, waiting for UDP packets
-z11_node5  | [INFO] 21-01-2026 19:30:17: Received token via unicast
-z11_node5  | [INFO] 21-01-2026 19:30:17: TOKEN: have_token=1 pending=0 inflight=0
-z11_node5  | [INFO] 21-01-2026 19:30:40: Received token via unicast
-z11_node5  | [INFO] 21-01-2026 19:30:40: TOKEN: have_token=1 pending=0 inflight=0
-z11_node5  | [INFO] 21-01-2026 19:32:09: Received token via unicast
-z11_node5  | [INFO] 21-01-2026 19:32:09: TOKEN: have_token=1 pending=0 inflight=0
-z11_node5  | [INFO] 21-01-2026 19:32:31: Received token via unicast
-z11_node5  | [INFO] 21-01-2026 19:32:31: TOKEN: have_token=1 pending=0 inflight=0
-z11_node5  | [INFO] 21-01-2026 19:33:07: Received token via unicast
-z11_node5  | [INFO] 21-01-2026 19:33:07: TOKEN: have_token=1 pending=0 inflight=0
-z11_node5  | [INFO] 21-01-2026 19:34:00: Received token via unicast
-z11_node5  | [INFO] 21-01-2026 19:34:00: TOKEN: have_token=1 pending=0 inflight=0
-z11_node5  | [INFO] 21-01-2026 19:34:32: Received token via unicast
-z11_node5  | [INFO] 21-01-2026 19:34:32: TOKEN: have_token=1 pending=0 inflight=0
-z11_node5  | [INFO] 21-01-2026 19:35:18: Received token via unicast
-z11_node5  | [INFO] 21-01-2026 19:35:18: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 20-01-2026 19:27:39: Node initalized, waiting for UDP packets
+z11_node5  | [INFO] 20-01-2026 19:30:17: Received token via unicast
+z11_node5  | [INFO] 20-01-2026 19:30:17: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 20-01-2026 19:30:40: Received token via unicast
+z11_node5  | [INFO] 20-01-2026 19:30:40: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 20-01-2026 19:32:09: Received token via unicast
+z11_node5  | [INFO] 20-01-2026 19:32:09: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 20-01-2026 19:32:31: Received token via unicast
+z11_node5  | [INFO] 20-01-2026 19:32:31: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 20-01-2026 19:33:07: Received token via unicast
+z11_node5  | [INFO] 20-01-2026 19:33:07: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 20-01-2026 19:34:00: Received token via unicast
+z11_node5  | [INFO] 20-01-2026 19:34:00: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 20-01-2026 19:34:32: Received token via unicast
+z11_node5  | [INFO] 20-01-2026 19:34:32: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 20-01-2026 19:35:18: Received token via unicast
+z11_node5  | [INFO] 20-01-2026 19:35:18: TOKEN: have_token=1 pending=0 inflight=0
 
