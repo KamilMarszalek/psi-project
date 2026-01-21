@@ -16,9 +16,9 @@
 #define MAX_FRAME_SIZE ((1 << 16) - 1)
 #define MAX_TRANSMISION_ATTEMPTS 15
 #define ACK_TIMEOUT_USEC 2000000
-#define ACK_ACK_TIMEOUT_USEC 300000
-#define ACK_ACK_DELAY_USEC 50000
-#define ACK_ACK_SEND_COUNT 15
+#define ACK_ACK_TIMEOUT_USEC 1000000
+#define ACK_ACK_DELAY_USEC 0
+#define ACK_ACK_SEND_COUNT 1
 #define MAX_RUDP_PEERS 32
 #define MAX_RUDP_PENDING 256
 
@@ -27,12 +27,11 @@ static int wait_for_frame(
     int timeout_us, void* out_buf, size_t out_bufsize
 );
 static int pending_take_message_any(struct sockaddr_in* addr_out, void* out_buf, size_t* out_len);
-static int pending_store_message(const struct sockaddr_in* addr, const void* buf, size_t len);
+static int pending_store_frame(const struct sockaddr_in* addr, const void* buf, size_t len);
 static int send_ack_frame(int socket, const struct sockaddr_in* to, socklen_t to_len, uint8_t seq_bit);
 static int send_ack_ack_burst(int socket, const struct sockaddr_in* dest, socklen_t dest_len, uint8_t seq_bit);
-static int receive_message_frame(
-    int socket, struct sockaddr_in* source_addr, void* out_buf, size_t out_buf_size, size_t* out_len
-);
+static int
+receive_message_frame(int socket, struct sockaddr_in* source_addr, void* out_buf, size_t out_buf_size, size_t* out_len);
 
 typedef struct {
     uint8_t send_seq_bit;
@@ -219,6 +218,31 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
     }
 }
 
+static int pending_take_frame(
+    const struct sockaddr_in* expected_addr, frame_type_t expected_type, uint8_t expected_seq, void* out_buf,
+    size_t out_bufsize
+) {
+    for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
+        if (!pending_frames[i].used)
+            continue;
+
+        frame_t* f = (frame_t*) pending_frames[i].data;
+        if (f->header.frame_type != expected_type)
+            continue;
+        if (f->header.seq_bit != expected_seq)
+            continue;
+        if (!addr_equal(&pending_frames[i].addr, expected_addr))
+            continue;
+
+        size_t copy_len = pending_frames[i].len < out_bufsize ? pending_frames[i].len : out_bufsize;
+        memcpy(out_buf, pending_frames[i].data, copy_len);
+        pending_frames[i].used = 0;
+        return 1;
+    }
+    return 0;
+}
+
+
 static int pending_take_message_any(struct sockaddr_in* addr_out, void* out_buf, size_t* out_len) {
     for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
         if (!pending_frames[i].used) {
@@ -226,7 +250,6 @@ static int pending_take_message_any(struct sockaddr_in* addr_out, void* out_buf,
         }
         frame_t* frame = (frame_t*) pending_frames[i].data;
         if (frame->header.frame_type != MESSAGE) {
-            pending_frames[i].used = 0;
             continue;
         }
         *addr_out = pending_frames[i].addr;
@@ -238,14 +261,29 @@ static int pending_take_message_any(struct sockaddr_in* addr_out, void* out_buf,
     return 0;
 }
 
-static int pending_store_message(const struct sockaddr_in* addr, const void* buf, size_t len) {
-    if (len > MAX_FRAME_SIZE || len < sizeof(header_t)) {
+static int pending_store_frame(const struct sockaddr_in* addr, const void* buf, size_t len) {
+    if (len > MAX_FRAME_SIZE || len < sizeof(header_t))
         return 0;
+
+    const frame_t* nf = (const frame_t*) buf;
+
+
+    if (nf->header.frame_type != MESSAGE) {
+        for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
+            if (!pending_frames[i].used)
+                continue;
+            if (!addr_equal(&pending_frames[i].addr, addr))
+                continue;
+
+            frame_t* of = (frame_t*) pending_frames[i].data;
+            if (of->header.frame_type == nf->header.frame_type && of->header.seq_bit == nf->header.seq_bit) {
+                pending_frames[i].len = len;
+                memcpy(pending_frames[i].data, buf, len);
+                return 1;
+            }
+        }
     }
-    frame_t* frame = (frame_t*) buf;
-    if (frame->header.frame_type != MESSAGE) {
-        return 0;
-    }
+
     for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
         if (!pending_frames[i].used) {
             pending_frames[i].used = 1;
@@ -255,9 +293,11 @@ static int pending_store_message(const struct sockaddr_in* addr, const void* buf
             return 1;
         }
     }
-    LOG_WARN("RUDP pending buffer full, dropping message");
+
+    LOG_WARN("RUDP pending buffer full, dropping frame");
     return 0;
 }
+
 
 static int send_ack_frame(int socket, const struct sockaddr_in* to, socklen_t to_len, uint8_t seq_bit) {
     frame_t ack_frame = {.header = {.frame_type = ACK, .seq_bit = seq_bit}};
@@ -282,12 +322,15 @@ static int send_ack_ack_burst(int socket, const struct sockaddr_in* dest, sockle
 
 int rudp_has_pending(void) {
     for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
-        if (pending_frames[i].used) {
+        if (!pending_frames[i].used)
+            continue;
+        frame_t* f = (frame_t*) pending_frames[i].data;
+        if (f->header.frame_type == MESSAGE)
             return 1;
-        }
     }
     return 0;
 }
+
 
 static int receive_message_frame(
     int socket, struct sockaddr_in* source_addr, void* out_buf, size_t out_buf_size, size_t* out_len
@@ -312,6 +355,7 @@ static int receive_message_frame(
         }
         frame_t* frame = (frame_t*) out_buf;
         if (frame->header.frame_type != MESSAGE) {
+            pending_store_frame(&from, out_buf, (size_t) n);
             continue;
         }
         *source_addr = from;
@@ -326,6 +370,11 @@ static int wait_for_frame(
 ) {
     struct timeval start;
     gettimeofday(&start, NULL);
+
+    if (pending_take_frame(expected_addr, expected_type, expected_seq, out_buf, out_bufsize) == 1) {
+        return 1;
+    }
+
 
     while (1) {
         struct timeval now;
@@ -364,7 +413,7 @@ static int wait_for_frame(
         }
         frame_t* frame = (frame_t*) frame_buf;
         if (frame->header.frame_type == MESSAGE) {
-            if (pending_store_message(&from, frame_buf, (size_t) n)) {
+            if (pending_store_frame(&from, frame_buf, (size_t) n)) {
                 send_ack_frame(socket, &from, from_len, frame->header.seq_bit);
             }
             continue;
@@ -375,5 +424,8 @@ static int wait_for_frame(
             memcpy(out_buf, frame_buf, copy_len);
             return 1;
         }
+
+        pending_store_frame(&from, frame_buf, (size_t) n);
+        continue;
     }
 }

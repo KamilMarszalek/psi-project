@@ -251,41 +251,18 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             LOG_INFO("APPLY JOIN_ACCEPT: did_apply=%d", did_apply);
 
             if (did_apply) {
-                if (broadcast_send_join_ack(
-                        broadcast_socket, accept_host.header.request_id, ring_state->config.current->node_name
-                    ) < 0) {
-                    LOG_WARN("Failed to send JOIN_ACK");
-                }
+                ring_state->ack_sender.active = 1;
+                ring_state->ack_sender.request_id = accept_host.header.request_id;
+
+                strncpy(ring_state->ack_sender.coord_name, accept_host.before_name, MAX_NODE_NAME_SIZE - 1);
+                ring_state->ack_sender.coord_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+                ring_state->ack_sender.coord_unicast_port = accept_host.before_unicast_port;
+
+                ring_state->ack_sender.last_sent = 0;
+                ring_state->ack_sender.retries = 0;
+                ring_state->ack_sender.got_ack_ack = 0;
             }
 
-            return 0;
-        }
-
-
-        case JOIN_ACK: {
-            if ((size_t) n_recv != sizeof(join_ack_t)) {
-                LOG_ERROR("Received invalid join ack size: %zd", n_recv);
-                return 0;
-            }
-
-            join_ack_t ack_wire;
-            memcpy(&ack_wire, buffer, sizeof(ack_wire));
-            ack_wire.from_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-
-            if (ntohl(ack_wire.header.magic) != JOIN_MAGIC || ntohs(ack_wire.header.type) != JOIN_ACK) {
-                LOG_ERROR("Invalid JOIN_ACK magic/type");
-                return 0;
-            }
-
-            join_ack_t ack_host = {0};
-            ack_host.header.magic = JOIN_MAGIC;
-            ack_host.header.type = JOIN_ACK;
-            ack_host.header.request_id = ntohl(ack_wire.header.request_id);
-
-            strncpy(ack_host.from_name, ack_wire.from_name, MAX_NODE_NAME_SIZE - 1);
-            ack_host.from_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-
-            join_fsm_handle_ack_broadcast(ring_state, &ack_host, broadcast_socket);
             return 0;
         }
 
@@ -365,23 +342,6 @@ int broadcast_send_join_accept(int broadcast_socket, const join_accept_t* accept
     }
     return 0;
 }
-
-int broadcast_send_join_ack(int broadcast_socket, uint32_t request_id, const char* from_name) {
-    join_ack_t wire = {0};
-    wire.header.magic = htonl(JOIN_MAGIC);
-    wire.header.type = htons(JOIN_ACK);
-    wire.header.request_id = htonl(request_id);
-
-    strncpy(wire.from_name, from_name, MAX_NODE_NAME_SIZE - 1);
-    wire.from_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-
-    if (send_to_all_targets(broadcast_socket, &wire, sizeof(wire), targets, targets_count) < 0) {
-        LOG_ERROR("sending join ack");
-        return -1;
-    }
-    return 0;
-}
-
 
 int broadcast_send_join_commit(int broadcast_socket, uint32_t request_id, const char* new_name, uint32_t topo_version) {
     join_commit_t wire = {0};

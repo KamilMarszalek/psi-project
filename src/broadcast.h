@@ -21,7 +21,7 @@ int broadcast_send_join_request(
 );
 
 int broadcast_send_join_accept(int broadcast_socket, const join_accept_t* accept_host);
-int broadcast_send_join_ack(int broadcast_socket, uint32_t request_id, const char* from_name);
+
 
 int broadcast_send_join_commit(int broadcast_socket, uint32_t request_id, const char* new_name, uint32_t topo_version);
 

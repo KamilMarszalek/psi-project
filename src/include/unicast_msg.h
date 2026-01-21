@@ -6,7 +6,10 @@
 
 typedef enum {
     UMSG_TOKEN = 1,
+    UMSG_JOIN_ACK_U = 4,
+    UMSG_JOIN_ACK_ACK_U = 5,
 } unicast_msg_type_t;
+
 
 typedef struct {
     uint16_t type;
