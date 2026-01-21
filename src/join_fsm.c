@@ -168,14 +168,18 @@ int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket, int broadcas
         strncpy(joiner.node_name, accept.new_name, MAX_NODE_NAME_SIZE - 1);
         joiner.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
         joiner.unicast_port = accept.new_unicast_port;
-        if (unicast_send(unicast_socket, &msg, &joiner) < 0) {
+        if (unicast_send_limited(
+                unicast_socket, &msg, &joiner, JOIN_ACCEPT_ACK_TIMEOUT_USEC, JOIN_ACCEPT_ACK_MAX_ATTEMPTS
+            ) < 0) {
             LOG_WARN("JOIN_ACCEPT_U to joiner failed, will retry");
             send_error = 1;
         }
     }
 
     if (!state->join_inflight.got_confirm_prev) {
-        if (unicast_send(unicast_socket, &msg, state->config.prev) < 0) {
+        if (unicast_send_limited(
+                unicast_socket, &msg, state->config.prev, JOIN_ACCEPT_ACK_TIMEOUT_USEC, JOIN_ACCEPT_ACK_MAX_ATTEMPTS
+            ) < 0) {
             LOG_WARN("JOIN_ACCEPT_U to prev failed, will retry");
             send_error = 1;
         }

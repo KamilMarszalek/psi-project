@@ -25,6 +25,10 @@ typedef struct Frame {
 
 
 int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_in* dest_addr, socklen_t addrlen);
+int rudp_sendto_with_limits(
+    int socket, const void* buf, size_t len, const struct sockaddr_in* dest_addr, socklen_t addrlen,
+    int ack_timeout_us, int max_attempts
+);
 int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_addr, socklen_t addrlen);
 int rudp_has_pending(void);
 

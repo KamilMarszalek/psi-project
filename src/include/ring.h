@@ -5,6 +5,7 @@
 #include "route.h"
 #include "token.h"
 #include <sys/time.h>
+#include <time.h>
 
 typedef struct Descriptors {
     int unicast_socket;
@@ -27,6 +28,8 @@ typedef struct {
     route_config_t config;
     int joined;
     uint32_t last_seen_topo_version;
+    uint32_t token_epoch;
+    time_t last_token_seen;
     int broadcast_socket;
 
     join_state_t join_state;

@@ -56,14 +56,14 @@ int unicast_recv(int unicast_sock, unicast_msg_t* msg) {
     return 0;
 }
 
-int unicast_send(int unicast_sock, const unicast_msg_t* msg, const route_t* next) {
-    struct sockaddr_in next_node_addr = {
+static int resolve_next_addr(const route_t* next, struct sockaddr_in* out, socklen_t* out_len) {
+    *out = (struct sockaddr_in){
         .sin_family = AF_INET,
         .sin_port = htons(next->unicast_port),
     };
-    socklen_t length = sizeof(next_node_addr);
+    *out_len = sizeof(*out);
 
-    int res = inet_pton(AF_INET, next->node_name, &next_node_addr.sin_addr);
+    int res = inet_pton(AF_INET, next->node_name, &out->sin_addr);
     if (res < 0) {
         LOG_ERROR("Converting address to binary number: %s", strerror(errno));
         return -1;
@@ -80,19 +80,55 @@ int unicast_send(int unicast_sock, const unicast_msg_t* msg, const route_t* next
         }
 
         struct sockaddr_in* resolved_addr = (struct sockaddr_in*) addr_res->ai_addr;
-        next_node_addr.sin_addr = resolved_addr->sin_addr;
+        out->sin_addr = resolved_addr->sin_addr;
         freeaddrinfo(addr_res);
     }
+    return 0;
+}
 
+static int build_unicast_wire(const unicast_msg_t* msg, unicast_msg_t* wire_out) {
     if (msg->payload_len > MAX_UNICAST_PAYLOAD) {
         LOG_ERROR("Invalid unicast payload length: %u", msg->payload_len);
         return -1;
     }
 
+    *wire_out = (unicast_msg_t){0};
+    wire_out->type = htons(msg->type);
+    wire_out->payload_len = htons(msg->payload_len);
+    memcpy(wire_out->payload, msg->payload, msg->payload_len);
+    return 0;
+}
+
+int unicast_send(int unicast_sock, const unicast_msg_t* msg, const route_t* next) {
+    struct sockaddr_in next_node_addr = {0};
+    socklen_t length = 0;
+    if (resolve_next_addr(next, &next_node_addr, &length) < 0) {
+        return -1;
+    }
+
     unicast_msg_t wire = {0};
-    wire.type = htons(msg->type);
-    wire.payload_len = htons(msg->payload_len);
-    memcpy(wire.payload, msg->payload, msg->payload_len);
+    if (build_unicast_wire(msg, &wire) < 0) {
+        return -1;
+    }
 
     return rudp_sendto(unicast_sock, &wire, sizeof(wire), &next_node_addr, length);
+}
+
+int unicast_send_limited(
+    int unicast_sock, const unicast_msg_t* msg, const route_t* next, int ack_timeout_us, int max_attempts
+) {
+    struct sockaddr_in next_node_addr = {0};
+    socklen_t length = 0;
+    if (resolve_next_addr(next, &next_node_addr, &length) < 0) {
+        return -1;
+    }
+
+    unicast_msg_t wire = {0};
+    if (build_unicast_wire(msg, &wire) < 0) {
+        return -1;
+    }
+
+    return rudp_sendto_with_limits(
+        unicast_sock, &wire, sizeof(wire), &next_node_addr, length, ack_timeout_us, max_attempts
+    );
 }
