@@ -86,9 +86,10 @@ System udostępnia następujące funkcje widoczne z zewnątrz:
 
 1. Proces chce dołączyć do pierścienia - wysyła broadcast. Wszystkie procesy w pierścieniu otrzymują broadcast - dodają go do swojej kolejki procesów oczekujących na dołączenie.
 2. Proces posiadający token obsługuje dołączenie nowego procesu.
-   - Jeśli proces jest już w trakcie wysyłania to ma zaciągnięty mutex. Kończy on wysyłanie, przekazuje token do następnego procesu w pierścieniu, stanie się on poprzednikiem procesu dołączającego.
-   - Jeśli proces nie jest w trakcie wysyłania (is_sending == false) to obsługujemy dołączenie nowego procesu - wyciągamy proces z kolejki i odsyłamy broadcast typu accept podając tablicę routingu nowego procesu. Zainteresowane procesy aktualizują swoje tablice routingu. Wszystkie procesy wyrzucają ten proces z kolejki procesów oczekujących.
-3. Nowy proces czeka na token i zaczyna normalną pracę
+   - Wstrzymuje przepływ tokena do momentu obsłużenia dołączenia wszystkich procesów z kolejki.
+   - Wyciągamy proces z kolejki i odsyłamy komunikat typu accept poprzez unicast podając tablicę routingu nowego procesu. Wiadomość otrzymują zainteresowane procesy.
+   - Po zakończeniu dołączenia wysyłany jest do wszystkich procesów broadcast typu commit z informacją o nowej wersji pierścienia.
+3. Nowy proces czeka na token i zaczyna normalną pracę.
 
 ### Pseudokod obsługi dołączenia procesu do pieścienia
 
@@ -110,6 +111,9 @@ while (1) {
         perror("select");
         break;
     }
+    if (FD_ISSET(unicast_socket, &rfds)) {
+        unicast_recv();
+    }
 
     if (FD_ISSET(broadcast_socket, &rfds)) {
         handle_broadcast();
@@ -117,40 +121,25 @@ while (1) {
     }
 
     if (Queue.not_empty() && has_token()) {
-        lock(&mutex);
-        if !is_sending {
-            handle_join()
-        }
-        unlock(&mutex);
-        continue;
+        handle_join();
     }
 
     if (FD_ISSET(cli_socket, &rfds) && has_empty_token()) {
         load_data_to_token();
     }
 
-    if (FD_ISSET(unicast_socket, &rfds)) {
-        is_sending = true;
-        pthread_create(&handle_unicast);
-    }
-}
-
-void handle_unicast() {
-    lock(&mutex);
-    pthread_cond_timedwait(timeout, mutex, timespec);
-    is_sending = false;
-    unlock(&mutex);
+    unicast_send_token_to_successor();
 }
 ```
 
 ### Analiza poprawności protokołu dołączenia procesu do pierścienia
 Proces A chce dołączyć do pierścienia. Wysyła broadcast, który jest odbierany przez wszystkie procesy w pierścieniu.Proces posiadający token np. proces B sprawdza czy jest w trakcie wysyłania tokena.
-- Scenariusz 1: Jeśli tak, to kończy wysyłanie i przekazuje token dalej. Wysyłanie przebiegnie poprawnie ponieważ znajduje się w strefie krytycznej i nie może zostać przerwane poprzez pojawienie się broadcastu. Mutex zostanie przez nią zaciągnięty po obudzeniu ze zmiennej warunkowej. Obsługą dołączenia procesu A zajmie się proces będacy następnikiem B. Reszta jak w scenariuszu 2. 
+- Scenariusz 1: Jeśli tak, to kończy wysyłanie i przekazuje token dalej. Obsługą dołączenia procesu A zajmie się proces będacy następnikiem B. Reszta jak w scenariuszu 2. 
 
    $\rightarrow$ Przykładowy pierścień na początku: **B[token]** -> C -> D -> B. 
 
    $\rightarrow$ Po dołączeniu A: B -> A -> **C[token]**-> D -> B
-- Scenariusz 2: Proces B posiadający token nie jest w trakcie wysyłania tokena. Odbiera broadcast od procesu A i obsługuje jego dołączenie. Wysyła broadcast typu accept do wszystkich procesów w pierścieniu z tablicą routingu procesu A. Wysyłanie broadcastu nie nastąpi równolegle z przesłaniem tokenu, ponieważ obie operacje są w strefie krytycznej i wzajemnie się wykluczają. Zainteresowane procesy aktualizują swoje tablice routingu i wyrzucają proces A z kolejki procesów oczekujących na dołączenie. Proces B staje się następnikiem procesu A w pierścieniu. 
+- Scenariusz 2: Proces B posiadający token nie jest w trakcie wysyłania tokena. Odbiera broadcast od procesu A i obsługuje jego dołączenie. Wysyła unicast typu accept do swojego poprzednika oraz do procesu, który chce dołączyć z tablicą routingu. Wysyłanie unicastu nie nastąpi równolegle z przesłaniem tokenu, ponieważ zabezpiecza nas przed tym select. Po dołączeniu procesu wysyłany jest broadcast typu commit, po jego otrzymaniu wszystkie procesy usuwają nowo dołączony proces z kolejki. Proces B staje się następnikiem procesu A w pierścieniu. 
 
    $\rightarrow$ Przykładowy pierścień na początku: **B[token]** -> C -> D -> B. 
 
@@ -248,4 +237,94 @@ Wersjonowanie - razem z tokenem będzie przesyłana aktualna wersja pierścienia
 - Narzędzia: CMake, Docker Compose, Docker
 
 Projekt zostanie przetestowany na serwerze Bigubu.
+
+## Opis najważniejszych rozwiązań funkcjonalnych
+W końcowej wersji typ odpowiadający tokenowi wygląda następująco:
+
+```c
+typedef struct Token {
+    char data[MAX_DATA_SIZE]; // wiadomość 
+    char sender[MAX_NODE_NAME_SIZE]; // nadawca
+    char receiver[MAX_NODE_NAME_SIZE]; // odbiorca
+    uint32_t topo_version; // wersja topologii pierścienia
+    bool is_empty; // czy token jest pusty
+} token_t;
+```
+
+Wersja topologii pierścienia jest liczbą całkowitą zwiększaną o 1 przy każdej zmianie w pierścieniu (dołączenie nowego procesu). Procesy przy odbiorze tokena będą porównywały wersję pierścienia w tokenie z lokalną wersją. Jeśli wersja w tokenie będzie nowsza to proces wyczyści zawartość swojej kolejki oczekujących do dołączenia (różnica wersji = liczba dołączonych procesów od ostatniego przejścia tokena przez dany proces).
+
+
+Stan danego proceesu w pierścieniu jest przechowywany w strukturze ring_state_t:
+```c
+typedef struct RingState {
+    route_config_t config; // zawiera identyfikator sieciowy procesu oraz informacje o poprzedniku i następniku w pierścieniu
+    int joined; // czy proces jest w pierścieniu
+    uint32_t last_seen_topo_version; // ostatnia znana wersja topologii pierścienia
+    uint32_t token_epoch; // liczba przejść tokena przez dany proces
+    time_t last_token_seen; // czas ostatniego otrzymania tokena
+    int broadcast_socket; // gniazdo do odbioru broadcastów
+
+    join_state_t join_state; // agreguje procesy oczekujące na dołączenie oraz te które zostały już obsłużone
+    join_inflight_t join_inflight; // informacje o aktualnie obsługiwanym dołączeniu procesu
+    join_ack_sender_t ack_sender; // obsługuje potwierdzenia dołączenia
+
+    // pola wykorzystywane przy dołączaniu procesu do pierścienia
+    uint32_t join_request_id; // identyfikator żądania dołączenia
+    time_t join_request_last_sent; // czas ostatniego wysłania żądania dołączenia
+    int join_request_retries; // liczba ponowień żądania dołączenia
+    
+    token_t token_in; // otrzymany token
+    int have_token; // czy proces posiada token
+
+    token_t cli_pending; // token z danymi od użytkownika czekający na wysłanie
+    int have_cli_pending; // czy jest token z danymi od użytkownika czekający na wysłanie
+
+    struct timeval forward_at; // czas, w którym należy przekazać token dalej
+} ring_state_t;
+```
+Główna funkcja znajduje się w pliku ring.c. Jest to pętla zdarzeń wykorzystująca select do obsługi gniazd UDP (broadcast, unicast) oraz wejścia CLI. W pętli sprawdzane są następujące warunki:
+1. Odbiór wiadomości unicast (handle_unicast_if_ready)
+2. Odbiór wiadomości broadcast (handle_broadcast_if_ready) i obsługa dołączenia procesu do pierścienia
+3. Załadowanie danych od użytkownika do tokena (handle_cli_if_ready), jeśli proces posiada pusty token
+4. Przekazanie do funkcji ring_on_token():
+   -  jeśli pusty token i są dane od użytkownika do wysłania, to dołącza je do tokena i ustawia flagę have_cli_pending na 0
+   -  przekazuje token dalej
+
+
+Inną ważną funkcją jest unicast_dispatch_message, która rozpoznaje typ otrzymanej wiadomości unicast i wywołuje odpowiednią funkcję obsługi (np. handle_token_unicast, handle_join_accept_u).
+```c
+int unicast_dispatch_message(ring_state_t* state, const unicast_msg_t* msg, int unicast_socket) {
+    if (msg->type == UMSG_TOKEN) {
+        handle_token_unicast(state, msg);
+        return 0;
+    }
+
+    if (msg->type == UMSG_JOIN_ACCEPT_U) {
+        return handle_join_accept_u(state, msg, unicast_socket);
+    }
+
+    if (msg->type == UMSG_JOIN_ACK_U) {
+        return handle_join_ack_u(state, msg, unicast_socket);
+    }
+
+    if (msg->type == UMSG_JOIN_ACK_ACK_U) {
+        handle_join_ack_ack_u(state, msg);
+        return 0;
+    }
+    return 0;
+}
+```
+
+
+Powstał jeszcze plik join_fsm.c, który zawiera funkcje obsługujące stany protokołu dołączania procesu do pierścienia:
+```c
+int join_fsm_request_tick(ring_state_t* state, int broadcast_socket);
+void join_fsm_start_inflight(ring_state_t* state, const pending_join_t* pending);
+int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket, int broadcast_socket);
+void join_fsm_handle_ack_broadcast(ring_state_t* state, const join_ack_t* ack, int broadcast_socket);
+void join_fsm_maybe_complete(ring_state_t* state, int broadcast_socket);
+```
+
+
+
 
