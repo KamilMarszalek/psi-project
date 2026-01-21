@@ -28,7 +28,7 @@
 #define JOIN_PENDING_TTL_S 200
 
 #define TOKEN_ACK_TIMEOUT_USEC 2500000
-// 0 means retry indefinitely until ACK is received.
+
 #define TOKEN_ACK_MAX_ATTEMPTS 0
 #define TOKEN_LOST_TIMEOUT_S 30
 

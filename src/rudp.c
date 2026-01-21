@@ -79,8 +79,8 @@ static rudp_peer_t* get_peer(const struct sockaddr_in* addr, int create) {
 }
 
 int rudp_sendto_with_limits(
-    int socket, const void* buf, size_t len, const struct sockaddr_in* dest_addr, socklen_t addrlen,
-    int ack_timeout_us, int max_attempts
+    int socket, const void* buf, size_t len, const struct sockaddr_in* dest_addr, socklen_t addrlen, int ack_timeout_us,
+    int max_attempts
 ) {
     size_t total_size = sizeof(header_t) + len;
     if (total_size > MAX_FRAME_SIZE) {
@@ -132,7 +132,7 @@ int rudp_sendto_with_limits(
                 "Timeout waiting for ACK(%u), resending message (retry number %d)", peer->state.send_seq_bit, attempts
             );
             if (max_retry > 0 && attempts >= max_retry) {
-                LOG_WARN("ACK retries exhausted for seq=%u", peer->state.send_seq_bit);
+                LOG_DEBUG("ACK retries exhausted for seq=%u", peer->state.send_seq_bit);
                 free(frame);
                 return -1;
             }
@@ -160,9 +160,7 @@ int rudp_sendto_with_limits(
 }
 
 int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_in* dest_addr, socklen_t addrlen) {
-    return rudp_sendto_with_limits(
-        socket, buf, len, dest_addr, addrlen, ACK_TIMEOUT_USEC, MAX_TRANSMISION_ATTEMPTS
-    );
+    return rudp_sendto_with_limits(socket, buf, len, dest_addr, addrlen, ACK_TIMEOUT_USEC, MAX_TRANSMISION_ATTEMPTS);
 }
 
 int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_addr, socklen_t addrlen) {
@@ -230,7 +228,7 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
         }
 
         if (!ack_ack_received) {
-            LOG_WARN("ACK-ACK was not received. Even though token is being forwarded.");
+            LOG_DEBUG("ACK-ACK was not received. Even though token is being forwarded.");
         }
 
         if (is_expected) {
@@ -327,7 +325,7 @@ static int pending_store_frame(const struct sockaddr_in* addr, const void* buf, 
         }
     }
 
-    LOG_WARN("RUDP pending buffer full, dropping frame");
+    LOG_DEBUG("RUDP pending buffer full, dropping frame");
     return 0;
 }
 
@@ -353,8 +351,9 @@ static int send_ack_frame(int socket, const struct sockaddr_in* to, socklen_t to
     return 0;
 }
 
-static int
-receive_message_frame(int socket, struct sockaddr_in* source_addr, void* out_buf, size_t out_buf_size, size_t* out_len) {
+static int receive_message_frame(
+    int socket, struct sockaddr_in* source_addr, void* out_buf, size_t out_buf_size, size_t* out_len
+) {
     if (pending_take_message_any(source_addr, out_buf, out_len) == 1) {
         return 0;
     }
