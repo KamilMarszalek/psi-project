@@ -144,10 +144,6 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
         return 0;
     }
 
-    if (!ring_state->joined && type != JOIN_ACCEPT) {
-        return 0;
-    }
-
     char ipbuf[INET_ADDRSTRLEN];
     if (!inet_ntop(AF_INET, &from.sin_addr, ipbuf, sizeof(ipbuf))) {
         strncpy(ipbuf, "unknown", sizeof(ipbuf) - 1);
@@ -206,63 +202,6 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             } else {
                 LOG_ERROR("Failed to add pending join from %s", join_request.node_name);
             }
-            return 0;
-        }
-
-        case JOIN_ACCEPT: {
-            if ((size_t) n_recv != sizeof(join_accept_t)) {
-                LOG_ERROR("Received invalid join accept size: %zd", n_recv);
-                return 0;
-            }
-
-            join_accept_t join_accept;
-            memcpy(&join_accept, buffer, sizeof(join_accept));
-
-            join_accept.new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-            join_accept.before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-            join_accept.prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-
-            join_accept_t accept_host;
-            memset(&accept_host, 0, sizeof(accept_host));
-            accept_host.header.request_id = request_id;
-            accept_host.header.type = JOIN_ACCEPT;
-            accept_host.header.magic = JOIN_MAGIC;
-
-            strncpy(accept_host.new_name, join_accept.new_name, MAX_NODE_NAME_SIZE - 1);
-            strncpy(accept_host.before_name, join_accept.before_name, MAX_NODE_NAME_SIZE - 1);
-            strncpy(accept_host.prev_name, join_accept.prev_name, MAX_NODE_NAME_SIZE - 1);
-
-            accept_host.new_unicast_port = ntohs(join_accept.new_unicast_port);
-            accept_host.before_unicast_port = ntohs(join_accept.before_unicast_port);
-            accept_host.prev_unicast_port = ntohs(join_accept.prev_unicast_port);
-
-            join_state_mark_completed_and_prune_pending(
-                &ring_state->join_state, accept_host.new_name, accept_host.header.request_id
-            );
-
-
-            LOG_DEBUG(
-                "RECV JOIN_ACCEPT: req=%u new=%s before=%s prev=%s", accept_host.header.request_id,
-                accept_host.new_name, accept_host.before_name, accept_host.prev_name
-            );
-
-            int did_apply = 0;
-            apply_accept_if_relevant(ring_state, &accept_host, &did_apply);
-            LOG_DEBUG("APPLY JOIN_ACCEPT: did_apply=%d", did_apply);
-
-            if (did_apply) {
-                ring_state->ack_sender.active = 1;
-                ring_state->ack_sender.request_id = accept_host.header.request_id;
-
-                strncpy(ring_state->ack_sender.coord_name, accept_host.before_name, MAX_NODE_NAME_SIZE - 1);
-                ring_state->ack_sender.coord_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-                ring_state->ack_sender.coord_unicast_port = accept_host.before_unicast_port;
-
-                ring_state->ack_sender.last_sent = 0;
-                ring_state->ack_sender.retries = 0;
-                ring_state->ack_sender.got_ack_ack = 0;
-            }
-
             return 0;
         }
 
@@ -352,30 +291,6 @@ int broadcast_send_join_request(
     return 0;
 }
 
-int broadcast_send_join_accept(int broadcast_socket, const join_accept_t* accept_host) {
-    join_accept_t wire = {0};
-    wire.header.magic = htonl(JOIN_MAGIC);
-    wire.header.type = htons(JOIN_ACCEPT);
-    wire.header.request_id = htonl(accept_host->header.request_id);
-
-    strncpy(wire.new_name, accept_host->new_name, MAX_NODE_NAME_SIZE - 1);
-    strncpy(wire.before_name, accept_host->before_name, MAX_NODE_NAME_SIZE - 1);
-    strncpy(wire.prev_name, accept_host->prev_name, MAX_NODE_NAME_SIZE - 1);
-
-    wire.new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-    wire.before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-    wire.prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-
-    wire.new_unicast_port = htons(accept_host->new_unicast_port);
-    wire.before_unicast_port = htons(accept_host->before_unicast_port);
-    wire.prev_unicast_port = htons(accept_host->prev_unicast_port);
-
-    if (send_to_all_targets(broadcast_socket, &wire, sizeof(wire), targets, targets_count) < 0) {
-        LOG_ERROR("sending join accept");
-        return -1;
-    }
-    return 0;
-}
 
 int broadcast_send_join_commit(int broadcast_socket, uint32_t request_id, const char* new_name, uint32_t topo_version) {
     join_commit_t wire = {0};
