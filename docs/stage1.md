@@ -243,19 +243,56 @@ W końcowej wersji typ odpowiadający tokenowi wygląda następująco:
 
 ```c
 typedef struct Token {
-    char data[MAX_DATA_SIZE]; // wiadomość 
-    char sender[MAX_NODE_NAME_SIZE]; // nadawca
-    char receiver[MAX_NODE_NAME_SIZE]; // odbiorca
-    uint32_t topo_version; // wersja topologii pierścienia
-    bool is_empty; // czy token jest pusty
+    char data[MAX_DATA_SIZE];
+    char sender[MAX_NODE_NAME_SIZE]; 
+    char receiver[MAX_NODE_NAME_SIZE]; 
+    uint32_t topo_version;
+    bool is_empty;
 } token_t;
 ```
 
 Wersja topologii pierścienia jest liczbą całkowitą zwiększaną o 1 przy każdej zmianie w pierścieniu (dołączenie nowego procesu). Procesy przy odbiorze tokena będą porównywały wersję pierścienia w tokenie z lokalną wersją. Jeśli wersja w tokenie będzie nowsza to proces wyczyści zawartość swojej kolejki oczekujących do dołączenia (różnica wersji = liczba dołączonych procesów od ostatniego przejścia tokena przez dany proces).
 
 
-Stan danego proceesu w pierścieniu jest przechowywany w strukturze ring_state_t:
+Stan danego proceesu w pierścieniu jest przechowywany w strukturze ring_state_t, struktura ta agreguje inne struktury:
 ```c
+typedef struct Route {
+    char node_name[MAX_NODE_NAME_SIZE];
+    uint16_t unicast_port;
+    uint16_t broadcast_port;
+} route_t;
+
+typedef struct RouteConfig {
+    route_t* current;
+    route_t* prev;
+    route_t* next;
+} route_config_t;
+
+typedef struct {
+    int used; 
+    uint32_t request_id; // identyfikator żądania dołączenia
+    char node_name[MAX_NODE_NAME_SIZE]; // nazwa procesu chcącego dołączyć
+    uint16_t unicast_port; // port unicast procesu chcącego dołączyć
+    struct in_addr ip; 
+    time_t last_seen; // czas ostatniego otrzymania broadcastu od tego procesu
+} pending_join_t;
+
+
+typedef struct JoinInflight {
+    int active; // czy jest aktywne dołączenie procesu
+    uint32_t request_id; // identyfikator żądania dołączenia
+
+    pending_join_t joiner; // informacje o procesie, który chce dołączyć
+
+    char expected_prev_name[MAX_NODE_NAME_SIZE]; // oczekiwana nazwa poprzednika
+    int got_confirm_prev; // czy otrzymano potwierdzenie od poprzednika
+    int got_confirm_joiner; // czy otrzymano potwierdzenie od dołączającego
+
+    time_t last_sent; // czas ostatniego wysłania wiadomości
+    int retries; // liczba ponowień wysłania wiadomości
+} join_inflight_t;
+
+
 typedef struct RingState {
     route_config_t config; // zawiera identyfikator sieciowy procesu oraz informacje o poprzedniku i następniku w pierścieniu
     int joined; // czy proces jest w pierścieniu
