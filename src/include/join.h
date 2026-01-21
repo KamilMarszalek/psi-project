@@ -8,6 +8,7 @@
 
 typedef enum {
     JOIN_REQUEST = 1,
+    JOIN_ACCEPT = 2,
     JOIN_COMMIT = 6,
 } join_message_type_t;
 
