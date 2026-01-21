@@ -356,6 +356,10 @@ typedef enum {
 ```
 Obsługa JOIN_REQUEST polega na dodaniu procesu do kolejki oczekujących. Obsługa JOIN_COMMIT polega na usunięciu z kolejki procesów, które zostały już dołączone (na podstawie wersji topologii pierścienia).
 
+Obsługa broadcastów może być zawodna, dlatego zdecydowaliśmy się ograniczyć ją do minimum - tylko do obsługi dołączania procesu do pierścienia. W przypadku utraty broadcastu JOIN_REQUEST proces będzie ponawiał wysyłanie żądania dołączenia co określony czas, aż do momentu otrzymania akceptacji.
+
+Przesyłanie tokena oraz wiadomości unicast jest realizowane za pomocą niezawodnego UDP zaimplementowanego w module rudp. Moduł ten udostępnia funkcje `rudp_send` oraz `rudp_recv`, które obsługują retransmisje i potwierdzenia.
+
 
 ## Opis interfejsu użytkownika
 Użytkownik może wchodzić w interakcję z pierścieniem wykorzystując dwa skompilowane pliki wykonywalne - `core` i `writer`. Definiują one następujące interfejsy:
