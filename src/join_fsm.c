@@ -73,6 +73,12 @@ void join_fsm_start_inflight(ring_state_t* state, const pending_join_t* pending)
 
     state->join_inflight.last_sent = 0;
     state->join_inflight.retries = 0;
+
+    if (strncmp(
+            state->join_inflight.expected_prev_name, state->config.current->node_name, MAX_NODE_NAME_SIZE
+        ) == 0) {
+        state->join_inflight.got_confirm_prev = 1;
+    }
 }
 
 static void join_fsm_try_complete(ring_state_t* state, int broadcast_socket) {
@@ -83,9 +89,20 @@ static void join_fsm_try_complete(ring_state_t* state, int broadcast_socket) {
         return;
     }
 
+    int prev_is_self = (strncmp(
+                            state->join_inflight.expected_prev_name, state->config.current->node_name,
+                            MAX_NODE_NAME_SIZE
+                        ) == 0);
+
     strncpy(state->config.prev->node_name, state->join_inflight.joiner.node_name, MAX_NODE_NAME_SIZE - 1);
     state->config.prev->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
     state->config.prev->unicast_port = state->join_inflight.joiner.unicast_port;
+
+    if (prev_is_self) {
+        strncpy(state->config.next->node_name, state->join_inflight.joiner.node_name, MAX_NODE_NAME_SIZE - 1);
+        state->config.next->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+        state->config.next->unicast_port = state->join_inflight.joiner.unicast_port;
+    }
 
     state->last_seen_topo_version++;
     state->token_in.topo_version = state->last_seen_topo_version;
