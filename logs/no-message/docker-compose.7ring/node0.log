@@ -1,0 +1,27 @@
+z11_node0  | [INFO] 21-01-2026 19:05:17: Node initalized, waiting for UDP packets
+z11_node0  | [INFO] 21-01-2026 19:05:17: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:05:24: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:05:24: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:05:31: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:05:31: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:05:38: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:05:38: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:05:45: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:05:45: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:05:52: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:05:52: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:05:59: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:05:59: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:06:06: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:06:06: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:06:13: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:06:13: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:06:20: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:06:20: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:06:27: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:06:27: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:06:34: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:06:34: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 19:06:41: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 19:06:41: TOKEN: have_token=1 pending=0 inflight=0
+

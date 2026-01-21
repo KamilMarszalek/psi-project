@@ -1,0 +1,24 @@
+z11_node2  | [INFO] 21-01-2026 19:08:36: Node initalized, waiting for UDP packets
+z11_node2  | [INFO] 21-01-2026 19:08:38: JOIN_REQUEST id=1985024211 name=node3 uni=5000 from=172.18.0.2
+z11_node2  | [INFO] 21-01-2026 19:08:38: JOIN_REQUEST id=955900391 name=node4 uni=5000 from=172.18.0.3
+z11_node2  | [INFO] 21-01-2026 19:08:38: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:08:38: TOKEN: have_token=1 pending=2 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:08:38: JOIN_INFLIGHT START: joiner=node3 req=1985024211 (prev=node1 curr=node2)
+z11_node2  | [INFO] 21-01-2026 19:08:43: JOIN_INFLIGHT COMPLETE: new prev=node3 topo=1
+z11_node2  | [INFO] 21-01-2026 19:08:44: TOKEN: have_token=1 pending=1 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:08:44: JOIN_INFLIGHT START: joiner=node4 req=955900391 (prev=node3 curr=node2)
+z11_node2  | [INFO] 21-01-2026 19:08:49: JOIN_INFLIGHT COMPLETE: new prev=node4 topo=2
+z11_node2  | [INFO] 21-01-2026 19:08:50: JOIN_REQUEST id=766804216 name=node5 uni=5000 from=172.18.0.6
+z11_node2  | [INFO] 21-01-2026 19:08:50: TOKEN: have_token=1 pending=1 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:08:50: JOIN_INFLIGHT START: joiner=node5 req=766804216 (prev=node4 curr=node2)
+z11_node2  | [INFO] 21-01-2026 19:08:55: JOIN_INFLIGHT COMPLETE: new prev=node5 topo=3
+z11_node2  | [INFO] 21-01-2026 19:08:56: JOIN_REQUEST id=3591090919 name=node6 uni=5000 from=172.18.0.7
+z11_node2  | [INFO] 21-01-2026 19:08:56: TOKEN: have_token=1 pending=1 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:08:56: JOIN_INFLIGHT START: joiner=node6 req=3591090919 (prev=node5 curr=node2)
+z11_node2  | [INFO] 21-01-2026 19:09:01: JOIN_INFLIGHT COMPLETE: new prev=node6 topo=4
+z11_node2  | [INFO] 21-01-2026 19:09:02: JOIN_COMMIT: req=1985024211 new=node3 topo=1
+z11_node2  | [INFO] 21-01-2026 19:09:02: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:09:04: JOIN_COMMIT: req=955900391 new=node4 topo=2
+z11_node2  | [INFO] 21-01-2026 19:09:04: JOIN_COMMIT: req=766804216 new=node5 topo=3
+z11_node2  | [INFO] 21-01-2026 19:09:04: JOIN_COMMIT: req=3591090919 new=node6 topo=4
+

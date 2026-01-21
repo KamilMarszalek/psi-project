@@ -1,0 +1,28 @@
+z11_node2  | [INFO] 21-01-2026 19:05:17: Node initalized, waiting for UDP packets
+z11_node2  | [INFO] 21-01-2026 19:05:19: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:05:19: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:05:26: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:05:26: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:05:33: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:05:33: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:05:40: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:05:40: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:05:47: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:05:47: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:05:54: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:05:54: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:06:01: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:06:01: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:06:08: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:06:08: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:06:15: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:06:15: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:06:22: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:06:22: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:06:29: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:06:29: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:06:36: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:06:36: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 21-01-2026 19:06:43: Received token via unicast
+z11_node2  | [INFO] 21-01-2026 19:06:43: TOKEN: have_token=1 pending=0 inflight=0
+

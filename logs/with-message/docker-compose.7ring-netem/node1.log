@@ -1,0 +1,15 @@
+z11_node1  | [INFO] Applying netem: delay=1000ms jitter=500ms loss=50%
+z11_node1  | [INFO] 21-01-2026 19:36:39: Node initalized, waiting for UDP packets
+z11_node1  | [INFO] 21-01-2026 19:36:49: Received token via unicast
+z11_node1  | [INFO] 21-01-2026 19:36:49: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 21-01-2026 19:37:56: Received token via unicast
+z11_node1  | [INFO] 21-01-2026 19:37:56: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 21-01-2026 19:37:56: Attaching CLI token: kapitan 44
+z11_node1  | 
+z11_node1  | [INFO] 21-01-2026 19:38:29: Received token via unicast
+z11_node1  | [INFO] 21-01-2026 19:38:29: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 21-01-2026 19:39:14: Received token via unicast
+z11_node1  | [INFO] 21-01-2026 19:39:14: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 21-01-2026 19:39:47: Received token via unicast
+z11_node1  | [INFO] 21-01-2026 19:39:47: TOKEN: have_token=1 pending=0 inflight=0
+
