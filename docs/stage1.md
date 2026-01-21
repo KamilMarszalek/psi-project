@@ -338,6 +338,25 @@ void join_fsm_handle_ack_broadcast(ring_state_t* state, const join_ack_t* ack, i
 void join_fsm_maybe_complete(ring_state_t* state, int broadcast_socket);
 ```
 
+Powstała również funkcja do znajdowania aktywnych interfejsów, które udostępniają broadcast w sieci lokalnej - `broadcast_collect_targets` w pliku broadcast.c, korzysta ona z `getifaddrs` oraz wylicza adres broadcast dla każdego interfejsu:
+```c
+static struct in_addr compute_broadcast(struct in_addr ip, struct in_addr netmask) {
+    struct in_addr broadcast;
+    broadcast.s_addr = ip.s_addr | ~netmask.s_addr;
+    return broadcast;
+}
+```
+
+Powstała również funkcja `handle_broadcast` w pliku broadcast.c, która obsługuje odebrane wiadomości broadcast, korzysta ona ze switcha na typ wiadomości, która dotyczy dołączenia procesu do pierścienia:
+```c
+typedef enum {
+    JOIN_REQUEST = 1,
+    JOIN_COMMIT = 6,
+} join_message_type_t;
+```
+Obsługa JOIN_REQUEST polega na dodaniu procesu do kolejki oczekujących. Obsługa JOIN_COMMIT polega na usunięciu z kolejki procesów, które zostały już dołączone (na podstawie wersji topologii pierścienia).
+
+
 ## Opis interfejsu użytkownika
 Użytkownik może wchodzić w interakcję z pierścieniem wykorzystując dwa skompilowane pliki wykonywalne - `core` i `writer`. Definiują one następujące interfejsy:
    - `core` - program do rozpoczęcia pracy w pierścieniu. Możliwe są dwa argumenty wywołania, 0 i 1, które odpowiednio wskazują, czy proces będzie wysyłał żądanie do dołączenia, czy znajduje już się w pierścieniu. Niezależnie od tego jaki wariant wybierzemy zdefiniowane muszą być następujące zmienne środowiskowe:
