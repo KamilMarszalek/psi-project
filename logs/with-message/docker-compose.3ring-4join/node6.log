@@ -1,28 +1,28 @@
 z11_node6  | [INFO] Delaying start by 6s
-z11_node6  | [INFO] 21-01-2026 19:23:55: Node initalized, waiting for UDP packets
-z11_node6  | [INFO] 21-01-2026 19:24:23: JOIN_COMMIT: req=2109258571 new=node6 topo=4
-z11_node6  | [INFO] 21-01-2026 19:24:30: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:24:30: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 21-01-2026 19:24:30: Full token received for another node - forwarding
+z11_node6  | [INFO] 20-01-2026 19:23:55: Node initalized, waiting for UDP packets
+z11_node6  | [INFO] 20-01-2026 19:24:23: JOIN_COMMIT: req=2109258571 new=node6 topo=4
+z11_node6  | [INFO] 20-01-2026 19:24:30: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:24:30: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:24:30: Full token received for another node - forwarding
 z11_node6  | 
-z11_node6  | [INFO] 21-01-2026 19:24:37: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:24:37: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 21-01-2026 19:24:44: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:24:44: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 21-01-2026 19:24:51: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:24:51: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 21-01-2026 19:24:58: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:24:58: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 21-01-2026 19:25:05: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:25:05: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 21-01-2026 19:25:12: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:25:12: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 21-01-2026 19:25:19: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:25:19: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 21-01-2026 19:25:26: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:25:26: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 21-01-2026 19:25:33: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:25:33: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 21-01-2026 19:25:40: Received token via unicast
-z11_node6  | [INFO] 21-01-2026 19:25:40: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:24:37: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:24:37: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:24:44: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:24:44: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:24:51: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:24:51: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:24:58: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:24:58: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:25:05: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:25:05: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:25:12: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:25:12: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:25:19: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:25:19: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:25:26: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:25:26: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:25:33: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:25:33: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:25:40: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:25:40: TOKEN: have_token=1 pending=0 inflight=0
 

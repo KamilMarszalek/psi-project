@@ -1,74 +1,74 @@
 z11_node1  | [INFO] Applying netem: delay=1000ms jitter=500ms loss=50%
-z11_node1  | [INFO] 21-01-2026 19:27:35: Node initalized, waiting for UDP packets
-z11_node1  | [INFO] 21-01-2026 19:27:38: JOIN_REQUEST id=499387908 name=node3 uni=5000 from=172.18.0.4
-z11_node1  | [INFO] 21-01-2026 19:27:42: JOIN_REQUEST id=2152002190 name=node6 uni=5000 from=172.18.0.7
-z11_node1  | [INFO] 21-01-2026 19:27:47: Received token via unicast
-z11_node1  | [INFO] 21-01-2026 19:27:47: TOKEN: have_token=1 pending=2 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:27:47: JOIN_INFLIGHT START: joiner=node3 req=499387908 (prev=node0 curr=node1)
-z11_node1  | [INFO] 21-01-2026 19:27:51: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:27:53: JOIN_REQUEST id=535435875 name=node5 uni=5000 from=172.18.0.3
-z11_node1  | [INFO] 21-01-2026 19:27:53: TOKEN: have_token=1 pending=2 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:27:55: TOKEN: have_token=1 pending=2 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:27:57: TOKEN: have_token=1 pending=2 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:01: JOIN_INFLIGHT COMPLETE: new prev=node3 topo=1
-z11_node1  | [INFO] 21-01-2026 19:28:05: TOKEN: have_token=1 pending=2 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:28:05: JOIN_INFLIGHT START: joiner=node6 req=2152002190 (prev=node3 curr=node1)
-z11_node1  | [INFO] 21-01-2026 19:28:10: JOIN_REQUEST id=535435875 name=node5 uni=5000 from=172.18.0.3
-z11_node1  | [INFO] 21-01-2026 19:28:10: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:12: JOIN_COMMIT: req=499387908 new=node3 topo=1
-z11_node1  | [INFO] 21-01-2026 19:28:12: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:16: JOIN_INFLIGHT COMPLETE: new prev=node6 topo=2
-z11_node1  | [INFO] 21-01-2026 19:28:26: TOKEN: have_token=1 pending=1 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:28:26: JOIN_INFLIGHT START: joiner=node5 req=535435875 (prev=node6 curr=node1)
-z11_node1  | [INFO] 21-01-2026 19:28:31: JOIN_COMMIT: req=2152002190 new=node6 topo=2
-z11_node1  | [INFO] 21-01-2026 19:28:31: TOKEN: have_token=1 pending=0 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:33: JOIN_REQUEST id=4066669410 name=node4 uni=5000 from=172.18.0.5
-z11_node1  | [INFO] 21-01-2026 19:28:33: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:35: JOIN_REQUEST id=4066669410 name=node4 uni=5000 from=172.18.0.5
-z11_node1  | [INFO] 21-01-2026 19:28:35: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:40: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:41: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:42: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:43: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:44: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:45: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:47: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:48: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:49: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:50: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:51: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:52: TOKEN: have_token=1 pending=1 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:28:53: JOIN_INFLIGHT COMPLETE: new prev=node5 topo=3
-z11_node1  | [INFO] 21-01-2026 19:28:54: TOKEN: have_token=1 pending=1 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:28:54: JOIN_INFLIGHT START: joiner=node4 req=4066669410 (prev=node5 curr=node1)
-z11_node1  | [INFO] 21-01-2026 19:28:59: JOIN_COMMIT: req=535435875 new=node5 topo=3
-z11_node1  | [INFO] 21-01-2026 19:28:59: TOKEN: have_token=1 pending=0 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:29:03: TOKEN: have_token=1 pending=0 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:29:04: TOKEN: have_token=1 pending=0 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:29:07: TOKEN: have_token=1 pending=0 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:29:08: TOKEN: have_token=1 pending=0 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:29:09: TOKEN: have_token=1 pending=0 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:29:11: TOKEN: have_token=1 pending=0 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:29:13: TOKEN: have_token=1 pending=0 inflight=1
-z11_node1  | [INFO] 21-01-2026 19:29:14: JOIN_INFLIGHT COMPLETE: new prev=node4 topo=4
-z11_node1  | [INFO] 21-01-2026 19:29:14: TOKEN: have_token=1 pending=0 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:29:14: Attaching CLI token: kapitan 44
+z11_node1  | [INFO] 20-01-2026 19:27:35: Node initalized, waiting for UDP packets
+z11_node1  | [INFO] 20-01-2026 19:27:38: JOIN_REQUEST id=499387908 name=node3 uni=5000 from=172.18.0.4
+z11_node1  | [INFO] 20-01-2026 19:27:42: JOIN_REQUEST id=2152002190 name=node6 uni=5000 from=172.18.0.7
+z11_node1  | [INFO] 20-01-2026 19:27:47: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:27:47: TOKEN: have_token=1 pending=2 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:27:47: JOIN_INFLIGHT START: joiner=node3 req=499387908 (prev=node0 curr=node1)
+z11_node1  | [INFO] 20-01-2026 19:27:51: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:27:53: JOIN_REQUEST id=535435875 name=node5 uni=5000 from=172.18.0.3
+z11_node1  | [INFO] 20-01-2026 19:27:53: TOKEN: have_token=1 pending=2 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:27:55: TOKEN: have_token=1 pending=2 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:27:57: TOKEN: have_token=1 pending=2 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:01: JOIN_INFLIGHT COMPLETE: new prev=node3 topo=1
+z11_node1  | [INFO] 20-01-2026 19:28:05: TOKEN: have_token=1 pending=2 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:28:05: JOIN_INFLIGHT START: joiner=node6 req=2152002190 (prev=node3 curr=node1)
+z11_node1  | [INFO] 20-01-2026 19:28:10: JOIN_REQUEST id=535435875 name=node5 uni=5000 from=172.18.0.3
+z11_node1  | [INFO] 20-01-2026 19:28:10: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:12: JOIN_COMMIT: req=499387908 new=node3 topo=1
+z11_node1  | [INFO] 20-01-2026 19:28:12: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:16: JOIN_INFLIGHT COMPLETE: new prev=node6 topo=2
+z11_node1  | [INFO] 20-01-2026 19:28:26: TOKEN: have_token=1 pending=1 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:28:26: JOIN_INFLIGHT START: joiner=node5 req=535435875 (prev=node6 curr=node1)
+z11_node1  | [INFO] 20-01-2026 19:28:31: JOIN_COMMIT: req=2152002190 new=node6 topo=2
+z11_node1  | [INFO] 20-01-2026 19:28:31: TOKEN: have_token=1 pending=0 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:33: JOIN_REQUEST id=4066669410 name=node4 uni=5000 from=172.18.0.5
+z11_node1  | [INFO] 20-01-2026 19:28:33: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:35: JOIN_REQUEST id=4066669410 name=node4 uni=5000 from=172.18.0.5
+z11_node1  | [INFO] 20-01-2026 19:28:35: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:40: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:41: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:42: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:43: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:44: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:45: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:47: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:48: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:49: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:50: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:51: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:52: TOKEN: have_token=1 pending=1 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:28:53: JOIN_INFLIGHT COMPLETE: new prev=node5 topo=3
+z11_node1  | [INFO] 20-01-2026 19:28:54: TOKEN: have_token=1 pending=1 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:28:54: JOIN_INFLIGHT START: joiner=node4 req=4066669410 (prev=node5 curr=node1)
+z11_node1  | [INFO] 20-01-2026 19:28:59: JOIN_COMMIT: req=535435875 new=node5 topo=3
+z11_node1  | [INFO] 20-01-2026 19:28:59: TOKEN: have_token=1 pending=0 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:29:03: TOKEN: have_token=1 pending=0 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:29:04: TOKEN: have_token=1 pending=0 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:29:07: TOKEN: have_token=1 pending=0 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:29:08: TOKEN: have_token=1 pending=0 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:29:09: TOKEN: have_token=1 pending=0 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:29:11: TOKEN: have_token=1 pending=0 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:29:13: TOKEN: have_token=1 pending=0 inflight=1
+z11_node1  | [INFO] 20-01-2026 19:29:14: JOIN_INFLIGHT COMPLETE: new prev=node4 topo=4
+z11_node1  | [INFO] 20-01-2026 19:29:14: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:29:14: Attaching CLI token: kapitan 44
 z11_node1  | 
-z11_node1  | [INFO] 21-01-2026 19:29:27: JOIN_COMMIT: req=4066669410 new=node4 topo=4
-z11_node1  | [INFO] 21-01-2026 19:30:23: Received token via unicast
-z11_node1  | [INFO] 21-01-2026 19:30:23: TOKEN: have_token=1 pending=0 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:30:54: Received token via unicast
-z11_node1  | [INFO] 21-01-2026 19:30:54: TOKEN: have_token=1 pending=0 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:32:21: Received token via unicast
-z11_node1  | [INFO] 21-01-2026 19:32:21: TOKEN: have_token=1 pending=0 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:32:35: Received token via unicast
-z11_node1  | [INFO] 21-01-2026 19:32:35: TOKEN: have_token=1 pending=0 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:33:27: Received token via unicast
-z11_node1  | [INFO] 21-01-2026 19:33:27: TOKEN: have_token=1 pending=0 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:34:07: Received token via unicast
-z11_node1  | [INFO] 21-01-2026 19:34:07: TOKEN: have_token=1 pending=0 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:34:35: Received token via unicast
-z11_node1  | [INFO] 21-01-2026 19:34:35: TOKEN: have_token=1 pending=0 inflight=0
-z11_node1  | [INFO] 21-01-2026 19:35:22: Received token via unicast
-z11_node1  | [INFO] 21-01-2026 19:35:22: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:29:27: JOIN_COMMIT: req=4066669410 new=node4 topo=4
+z11_node1  | [INFO] 20-01-2026 19:30:23: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:30:23: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:30:54: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:30:54: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:32:21: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:32:21: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:32:35: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:32:35: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:33:27: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:33:27: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:34:07: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:34:07: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:34:35: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:34:35: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:35:22: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:35:22: TOKEN: have_token=1 pending=0 inflight=0
 
