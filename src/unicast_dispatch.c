@@ -13,8 +13,11 @@
 static void update_topology_on_token(ring_state_t* state);
 static void handle_token_unicast(ring_state_t* state, const unicast_msg_t* msg);
 
+static int handle_join_accept_u(ring_state_t* st, const unicast_msg_t* msg);
 static int handle_join_ack_u(ring_state_t* st, const unicast_msg_t* msg, int unicast_socket);
 static void handle_join_ack_ack_u(ring_state_t* st, const unicast_msg_t* msg);
+
+static int apply_accept_if_relevant(ring_state_t* ring_state, const join_accept_t* accept);
 
 static void update_topology_on_token(ring_state_t* state) {
     if (state->token_in.topo_version <= state->last_seen_topo_version) {
@@ -55,6 +58,10 @@ int unicast_dispatch_message(ring_state_t* state, const unicast_msg_t* msg, int 
         return 0;
     }
 
+    if (msg->type == UMSG_JOIN_ACCEPT_U) {
+        return handle_join_accept_u(state, msg);
+    }
+
     if (msg->type == UMSG_JOIN_ACK_U) {
         return handle_join_ack_u(state, msg, unicast_socket);
     }
@@ -65,6 +72,59 @@ int unicast_dispatch_message(ring_state_t* state, const unicast_msg_t* msg, int 
     }
 
     LOG_WARN("Unknown unicast message type: %u", msg->type);
+    return 0;
+}
+
+static int handle_join_accept_u(ring_state_t* st, const unicast_msg_t* msg) {
+    if (msg->payload_len != sizeof(join_accept_t)) {
+        return 0;
+    }
+
+    join_accept_t wire;
+    memcpy(&wire, msg->payload, sizeof(wire));
+    if (ntohl(wire.header.magic) != JOIN_MAGIC || ntohs(wire.header.type) != JOIN_ACCEPT) {
+        return 0;
+    }
+
+    join_accept_t accept = {0};
+    accept.header.request_id = ntohl(wire.header.request_id);
+    accept.header.type = JOIN_ACCEPT;
+    accept.header.magic = JOIN_MAGIC;
+
+    strncpy(accept.new_name, wire.new_name, MAX_NODE_NAME_SIZE - 1);
+    strncpy(accept.before_name, wire.before_name, MAX_NODE_NAME_SIZE - 1);
+    strncpy(accept.prev_name, wire.prev_name, MAX_NODE_NAME_SIZE - 1);
+    accept.new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    accept.before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    accept.prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+
+    accept.new_unicast_port = ntohs(wire.new_unicast_port);
+    accept.before_unicast_port = ntohs(wire.before_unicast_port);
+    accept.prev_unicast_port = ntohs(wire.prev_unicast_port);
+
+    join_state_mark_completed_and_prune_pending(&st->join_state, accept.new_name, accept.header.request_id);
+
+    LOG_INFO(
+        "RECV JOIN_ACCEPT_U: req=%u new=%s before=%s prev=%s", accept.header.request_id, accept.new_name,
+        accept.before_name, accept.prev_name
+    );
+
+    int did_apply = apply_accept_if_relevant(st, &accept);
+    LOG_INFO("APPLY JOIN_ACCEPT_U: did_apply=%d", did_apply);
+
+    if (did_apply) {
+        st->ack_sender.active = 1;
+        st->ack_sender.request_id = accept.header.request_id;
+
+        strncpy(st->ack_sender.coord_name, accept.before_name, MAX_NODE_NAME_SIZE - 1);
+        st->ack_sender.coord_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+        st->ack_sender.coord_unicast_port = accept.before_unicast_port;
+
+        st->ack_sender.last_sent = 0;
+        st->ack_sender.retries = 0;
+        st->ack_sender.got_ack_ack = 0;
+    }
+
     return 0;
 }
 
@@ -148,4 +208,41 @@ static void handle_join_ack_ack_u(ring_state_t* st, const unicast_msg_t* msg) {
         st->ack_sender.got_ack_ack = 1;
         LOG_INFO("RECV JOIN_ACK_ACK_U req=%u => stop ACK retries", req);
     }
+}
+
+static int apply_accept_if_relevant(ring_state_t* ring_state, const join_accept_t* accept) {
+    const char* me = ring_state->config.current->node_name;
+
+    if (strncmp(me, accept->new_name, MAX_NODE_NAME_SIZE) == 0) {
+        if (ring_state->joined) {
+            return 0;
+        }
+        if (!ring_state->joined && accept->header.request_id != ring_state->join_request_id) {
+            return 0;
+        }
+        strncpy(ring_state->config.prev->node_name, accept->prev_name, MAX_NODE_NAME_SIZE - 1);
+        ring_state->config.prev->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+        ring_state->config.prev->unicast_port = accept->prev_unicast_port;
+
+        strncpy(ring_state->config.next->node_name, accept->before_name, MAX_NODE_NAME_SIZE - 1);
+        ring_state->config.next->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+        ring_state->config.next->unicast_port = accept->before_unicast_port;
+        ring_state->joined = 1;
+        ring_state->join_request_last_sent = 0;
+        ring_state->join_request_retries = 0;
+        return 1;
+    }
+
+    if (strncmp(me, accept->prev_name, MAX_NODE_NAME_SIZE) == 0) {
+        if (strncmp(ring_state->config.next->node_name, accept->before_name, MAX_NODE_NAME_SIZE) != 0) {
+            return 0;
+        }
+        strncpy(ring_state->config.next->node_name, accept->new_name, MAX_NODE_NAME_SIZE - 1);
+        ring_state->config.next->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+        ring_state->config.next->unicast_port = accept->new_unicast_port;
+        ring_state->joined = 1;
+        return 1;
+    }
+
+    return 0;
 }

@@ -103,7 +103,7 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
             break;
         }
 
-        if (join_fsm_inflight_tick(&state, descriptors.broadcast_socket) < 0) {
+        if (join_fsm_inflight_tick(&state, descriptors.unicast_socket, descriptors.broadcast_socket) < 0) {
             break;
         }
 
@@ -116,6 +116,12 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
             return -1;
         }
 
+        if (handle_unicast_if_ready(descriptors.unicast_socket, descriptors.broadcast_socket, &state, &rfds) < 0) {
+            break;
+        }
+
+        join_fsm_maybe_complete(&state, descriptors.broadcast_socket);
+
         if (handle_broadcast_if_ready(descriptors.broadcast_socket, &state, &rfds) < 0) {
             break;
         }
@@ -123,12 +129,6 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
         if (handle_cli_if_ready(descriptors.cli_fd, &state, &rfds) < 0) {
             break;
         }
-
-        if (handle_unicast_if_ready(descriptors.unicast_socket, descriptors.broadcast_socket, &state, &rfds) < 0) {
-            break;
-        }
-
-        join_fsm_maybe_complete(&state, descriptors.broadcast_socket);
 
         if (handle_token_if_ready(&state, descriptors.unicast_socket, descriptors.broadcast_socket) < 0) {
             break;
@@ -352,7 +352,7 @@ static int handle_token_if_ready(ring_state_t* state, int unicast_socket, int br
 
             join_fsm_start_inflight(state, &pj);
 
-            if (join_fsm_inflight_tick(state, broadcast_socket) < 0) {
+            if (join_fsm_inflight_tick(state, unicast_socket, broadcast_socket) < 0) {
                 return -1;
             }
         }

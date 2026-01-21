@@ -5,6 +5,8 @@
 #include "consts.h"
 #include "join.h"
 #include "logger.h"
+#include "unicast.h"
+#include "unicast_msg.h"
 
 #include <string.h>
 #include <time.h>
@@ -111,7 +113,7 @@ void join_fsm_maybe_complete(ring_state_t* state, int broadcast_socket) {
     join_fsm_try_complete(state, broadcast_socket);
 }
 
-int join_fsm_inflight_tick(ring_state_t* state, int broadcast_socket) {
+int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket, int broadcast_socket) {
     if (!state->join_inflight.active) {
         return 0;
     }
@@ -137,17 +139,53 @@ int join_fsm_inflight_tick(ring_state_t* state, int broadcast_socket) {
     join_accept_t accept;
     build_join_accept_host(state, &accept);
 
+    join_accept_t wire = {0};
+    wire.header.magic = htonl(JOIN_MAGIC);
+    wire.header.type = htons(JOIN_ACCEPT);
+    wire.header.request_id = htonl(accept.header.request_id);
+    strncpy(wire.new_name, accept.new_name, MAX_NODE_NAME_SIZE - 1);
+    strncpy(wire.before_name, accept.before_name, MAX_NODE_NAME_SIZE - 1);
+    strncpy(wire.prev_name, accept.prev_name, MAX_NODE_NAME_SIZE - 1);
+    wire.new_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    wire.before_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    wire.prev_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    wire.new_unicast_port = htons(accept.new_unicast_port);
+    wire.before_unicast_port = htons(accept.before_unicast_port);
+    wire.prev_unicast_port = htons(accept.prev_unicast_port);
+
+    unicast_msg_t msg = {0};
+    msg.type = UMSG_JOIN_ACCEPT_U;
+    msg.payload_len = sizeof(wire);
+    memcpy(msg.payload, &wire, sizeof(wire));
+
     LOG_INFO(
-        "SENDING JOIN_ACCEPT (broadcast): new=%s before=%s prev=%s", accept.new_name, accept.before_name,
-        accept.prev_name
+        "SENDING JOIN_ACCEPT_U: new=%s before=%s prev=%s", accept.new_name, accept.before_name, accept.prev_name
     );
 
-    if (broadcast_send_join_accept(broadcast_socket, &accept) < 0) {
-        return -1;
+    int send_error = 0;
+    if (!state->join_inflight.got_confirm_joiner) {
+        route_t joiner = {0};
+        strncpy(joiner.node_name, accept.new_name, MAX_NODE_NAME_SIZE - 1);
+        joiner.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+        joiner.unicast_port = accept.new_unicast_port;
+        if (unicast_send(unicast_socket, &msg, &joiner) < 0) {
+            LOG_WARN("JOIN_ACCEPT_U to joiner failed, will retry");
+            send_error = 1;
+        }
+    }
+
+    if (!state->join_inflight.got_confirm_prev) {
+        if (unicast_send(unicast_socket, &msg, state->config.prev) < 0) {
+            LOG_WARN("JOIN_ACCEPT_U to prev failed, will retry");
+            send_error = 1;
+        }
     }
 
     state->join_inflight.last_sent = now;
     state->join_inflight.retries++;
+    if (send_error) {
+        return 0;
+    }
     return 0;
 }
 
