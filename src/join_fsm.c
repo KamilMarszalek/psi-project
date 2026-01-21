@@ -107,17 +107,17 @@ static void join_fsm_try_complete(ring_state_t* state, int broadcast_socket) {
     );
 }
 
-int join_fsm_inflight_tick(ring_state_t* state, int broadcast_socket) {
-    LOG_DEBUG(
-        "JOIN_ACCEPT tick: active=%d req=%u retries=%d", state->join_inflight.active, state->join_inflight.request_id,
-        state->join_inflight.retries
-    );
+void join_fsm_maybe_complete(ring_state_t* state, int broadcast_socket) {
+    join_fsm_try_complete(state, broadcast_socket);
+}
 
+int join_fsm_inflight_tick(ring_state_t* state, int broadcast_socket) {
     if (!state->join_inflight.active) {
         return 0;
     }
 
     if (state->join_inflight.got_confirm_prev && state->join_inflight.got_confirm_joiner) {
+        join_fsm_maybe_complete(state, broadcast_socket);
         return 0;
     }
 
@@ -151,6 +151,7 @@ int join_fsm_inflight_tick(ring_state_t* state, int broadcast_socket) {
     return 0;
 }
 
+
 void join_fsm_handle_ack_broadcast(ring_state_t* state, const join_ack_t* ack, int broadcast_socket) {
     if (!state->join_inflight.active) {
         return;
@@ -171,5 +172,5 @@ void join_fsm_handle_ack_broadcast(ring_state_t* state, const join_ack_t* ack, i
         state->join_inflight.got_confirm_prev, state->join_inflight.got_confirm_joiner
     );
 
-    join_fsm_try_complete(state, broadcast_socket);
+    join_fsm_maybe_complete(state, broadcast_socket);
 }

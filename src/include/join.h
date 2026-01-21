@@ -9,9 +9,18 @@
 typedef enum {
     JOIN_REQUEST = 1,
     JOIN_ACCEPT = 2,
-    JOIN_ACK = 3,
-    JOIN_COMMIT = 4,
+    JOIN_COMMIT  = 6, 
 } join_message_type_t;
+
+typedef struct {
+    uint32_t request_id;
+    char from_name[MAX_NODE_NAME_SIZE];
+} join_ack_u_t;
+
+typedef struct {
+    uint32_t request_id;
+    char to_name[MAX_NODE_NAME_SIZE];
+} join_ack_ack_u_t;
 
 
 typedef struct {

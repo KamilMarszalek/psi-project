@@ -13,11 +13,14 @@
 #include "unicast_dispatch.h"
 
 #include <errno.h>
+#include <fcntl.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/select.h>
+#include <sys/time.h>
+#include <unistd.h>
 
 #define MAX3(x, y, z) (((x) > (y)) ? (((x) > (z)) ? (x) : (z)) : (((y) > (z)) ? (y) : (z)))
 
@@ -29,9 +32,11 @@ static int init_join_request_if_needed(ring_state_t* state, int broadcast_socket
 static int maybe_send_initial_token(const ring_state_t* state, int unicast_socket);
 static int handle_broadcast_if_ready(int broadcast_socket, ring_state_t* state, const fd_set* rfds);
 static int handle_cli_if_ready(int cli_fd, ring_state_t* state, const fd_set* rfds);
-static int handle_unicast_if_ready(int unicast_socket, ring_state_t* state, const fd_set* rfds);
+static int handle_unicast_if_ready(
+    int unicast_socket, int broadcast_socket, ring_state_t* state, const fd_set* rfds
+);
 static int handle_token_if_ready(ring_state_t* state, int unicast_socket, int broadcast_socket);
-
+static int join_ack_sender_tick(ring_state_t* st, int unicast_socket);
 
 int ring_initialize(route_config_t* config, descriptors_t* descriptors, int joined) {
     if (fill_config_from_env(config, joined) < 0) {
@@ -67,6 +72,7 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
 
     ring_state_t state = {0};
     init_ring_state(&state, config, joined);
+    state.broadcast_socket = descriptors.broadcast_socket;
 
     if (init_join_request_if_needed(&state, descriptors.broadcast_socket) < 0) {
         return -1;
@@ -79,6 +85,11 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
     }
 
     while (1) {
+        if (join_ack_sender_tick(&state, descriptors.unicast_socket) < 0) {
+            break;
+        }
+        time_t now = time(NULL);
+        prune_joins(&state.join_state, now, JOIN_PENDING_TTL_S);
         FD_ZERO(&rfds);
         FD_SET(descriptors.unicast_socket, &rfds);
         FD_SET(descriptors.broadcast_socket, &rfds);
@@ -87,8 +98,6 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
         int use_timeout = set_select_timeout(&state, &timeout);
         int ret = select(maxfd + 1, &rfds, NULL, NULL, use_timeout ? &timeout : NULL);
 
-        time_t now = time(NULL);
-        prune_joins(&state.join_state, now, JOIN_PENDING_TTL_S);
 
         if (join_fsm_request_tick(&state, descriptors.broadcast_socket) < 0) {
             break;
@@ -115,9 +124,11 @@ int ring_run(route_config_t config, descriptors_t descriptors, int joined) {
             break;
         }
 
-        if (handle_unicast_if_ready(descriptors.unicast_socket, &state, &rfds) < 0) {
+        if (handle_unicast_if_ready(descriptors.unicast_socket, descriptors.broadcast_socket, &state, &rfds) < 0) {
             break;
         }
+
+        join_fsm_maybe_complete(&state, descriptors.broadcast_socket);
 
         if (handle_token_if_ready(&state, descriptors.unicast_socket, descriptors.broadcast_socket) < 0) {
             break;
@@ -217,15 +228,32 @@ static void init_ring_state(ring_state_t* state, route_config_t config, int join
     state->joined = joined;
     state->join_state = (join_state_t){0};
     state->last_seen_topo_version = 0;
+    state->broadcast_socket = -1;
 }
+
+
+static uint32_t gen_request_id(void) {
+    uint32_t v = 0;
+    int fd = open("/dev/urandom", O_RDONLY);
+    if (fd >= 0) {
+        ssize_t n = read(fd, &v, sizeof(v));
+        close(fd);
+        if (n == sizeof(v) && v != 0)
+            return v;
+    }
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    v = (uint32_t) (tv.tv_sec ^ tv.tv_usec ^ ((uint32_t) getpid() << 16));
+    return v ? v : 1;
+}
+
 
 static int init_join_request_if_needed(ring_state_t* state, int broadcast_socket) {
     if (state->joined) {
         return 0;
     }
 
-    srand((unsigned int) time(NULL) ^ getpid());
-    state->join_request_id = (uint32_t) rand();
+    state->join_request_id = gen_request_id();
     state->join_request_last_sent = 0;
     state->join_request_retries = 0;
 
@@ -272,7 +300,9 @@ static int handle_cli_if_ready(int cli_fd, ring_state_t* state, const fd_set* rf
     return 0;
 }
 
-static int handle_unicast_if_ready(int unicast_socket, ring_state_t* state, const fd_set* rfds) {
+static int handle_unicast_if_ready(
+    int unicast_socket, int broadcast_socket, ring_state_t* state, const fd_set* rfds
+) {
     int have_pending = rudp_has_pending();
     if (!have_pending && !FD_ISSET(unicast_socket, rfds)) {
         return 0;
@@ -293,6 +323,7 @@ static int handle_unicast_if_ready(int unicast_socket, ring_state_t* state, cons
             unicast_error = 1;
             break;
         }
+        join_fsm_maybe_complete(state, broadcast_socket);
     } while (rudp_has_pending());
 
     if (unicast_error) {
@@ -336,13 +367,20 @@ static int handle_token_if_ready(ring_state_t* state, int unicast_socket, int br
 
 
 static int set_select_timeout(const ring_state_t* state, struct timeval* timeout) {
+    if (state->join_inflight.active && state->join_inflight.got_confirm_prev &&
+        state->join_inflight.got_confirm_joiner) {
+        timeout->tv_sec = 0;
+        timeout->tv_usec = 0;
+        return 1;
+    }
+
     if (rudp_has_pending()) {
         timeout->tv_sec = 0;
         timeout->tv_usec = 0;
         return 1;
     }
 
-    if (state->have_token) {
+    if (state->have_token && state->joined && !state->join_inflight.active) {
         timeout->tv_sec = 0;
         timeout->tv_usec = 0;
         return 1;
@@ -373,6 +411,13 @@ static int set_select_timeout(const ring_state_t* state, struct timeval* timeout
         }
     }
 
+    if (state->ack_sender.active && !state->ack_sender.got_ack_ack) {
+        time_t deadline = state->ack_sender.last_sent == 0 ? now : state->ack_sender.last_sent + JOIN_ACK_RESEND_S;
+        if (next_deadline == 0 || deadline < next_deadline) {
+            next_deadline = deadline;
+        }
+    }
+
     if (next_deadline == 0) {
         return 0;
     }
@@ -386,4 +431,47 @@ static int set_select_timeout(const ring_state_t* state, struct timeval* timeout
     timeout->tv_sec = (int) (next_deadline - now);
     timeout->tv_usec = 0;
     return 1;
+}
+
+
+static int join_ack_sender_tick(ring_state_t* st, int unicast_socket) {
+    if (!st->ack_sender.active)
+        return 0;
+    if (st->ack_sender.got_ack_ack) {
+        st->ack_sender.active = 0;
+        return 0;
+    }
+
+    time_t now = time(NULL);
+    if (st->ack_sender.last_sent != 0 && (now - st->ack_sender.last_sent) < JOIN_ACK_RESEND_S) {
+        return 0;
+    }
+
+    if (st->ack_sender.retries >= JOIN_ACK_MAX_RETRIES) {
+        LOG_WARN("JOIN_ACK retries exhausted for req=%u", st->ack_sender.request_id);
+        st->ack_sender.active = 0;
+        return 0;
+    }
+
+    join_ack_u_t ack = {0};
+    ack.request_id = htonl(st->ack_sender.request_id);
+    strncpy(ack.from_name, st->config.current->node_name, MAX_NODE_NAME_SIZE - 1);
+    ack.from_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+
+    unicast_msg_t msg = {0};
+    msg.type = UMSG_JOIN_ACK_U;
+    msg.payload_len = sizeof(ack);
+    memcpy(msg.payload, &ack, sizeof(ack));
+
+    route_t coord = {0};
+    strncpy(coord.node_name, st->ack_sender.coord_name, MAX_NODE_NAME_SIZE - 1);
+    coord.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+    coord.unicast_port = st->ack_sender.coord_unicast_port;
+
+    LOG_INFO("SEND JOIN_ACK_U req=%u to=%s:%u", st->ack_sender.request_id, coord.node_name, coord.unicast_port);
+    if (unicast_send(unicast_socket, &msg, &coord) < 0) {}
+
+    st->ack_sender.last_sent = now;
+    st->ack_sender.retries++;
+    return 0;
 }
