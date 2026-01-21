@@ -1,0 +1,173 @@
+services:
+    node0:
+        build:
+            dockerfile: dockerfile
+        image: z11_token_ring
+        container_name: z11_node0
+        command: ["1"]
+        cap_add:
+            - NET_ADMIN
+        environment:
+            SHOULD_START: "true"
+            NODE_NAME: node0
+            NODE_UNI_PORT: 5000
+            NODE_BROAD_PORT: 6000
+            PREV_NODE_NAME: node2
+            PREV_NODE_UNI_PORT: 5000
+            NEXT_NODE_NAME: node1
+            NEXT_NODE_UNI_PORT: 5000
+            NETEM_ENABLED: ${NETEM_ENABLED:-false}
+            NETEM_DELAY: ${NETEM_DELAY:-0ms}
+            NETEM_JITTER: ${NETEM_JITTER:-0ms}
+            NETEM_LOSS: ${NETEM_LOSS:-0%}
+        networks:
+            z11_network:
+                aliases: [node0]
+
+    node1:
+        build:
+            dockerfile: dockerfile
+        image: z11_token_ring
+        container_name: z11_node1
+        command: ["1"]
+        cap_add:
+            - NET_ADMIN
+        environment:
+            NODE_NAME: node1
+            NODE_UNI_PORT: 5000
+            NODE_BROAD_PORT: 6000
+            PREV_NODE_NAME: node0
+            PREV_NODE_UNI_PORT: 5000
+            NEXT_NODE_NAME: node2
+            NEXT_NODE_UNI_PORT: 5000
+            NETEM_ENABLED: ${NETEM_ENABLED:-false}
+            NETEM_DELAY: ${NETEM_DELAY:-0ms}
+            NETEM_JITTER: ${NETEM_JITTER:-0ms}
+            NETEM_LOSS: ${NETEM_LOSS:-0%}
+        networks:
+            z11_network:
+                aliases: [node1]
+
+    node2:
+        build:
+            dockerfile: dockerfile
+        image: z11_token_ring
+        container_name: z11_node2
+        command: ["1"]
+        cap_add:
+            - NET_ADMIN
+        environment:
+            NODE_NAME: node2
+            NODE_UNI_PORT: 5000
+            NODE_BROAD_PORT: 6000
+            PREV_NODE_NAME: node1
+            PREV_NODE_UNI_PORT: 5000
+            NEXT_NODE_NAME: node3
+            NEXT_NODE_UNI_PORT: 5000
+            NETEM_ENABLED: ${NETEM_ENABLED:-false}
+            NETEM_DELAY: ${NETEM_DELAY:-0ms}
+            NETEM_JITTER: ${NETEM_JITTER:-0ms}
+            NETEM_LOSS: ${NETEM_LOSS:-0%}
+        networks:
+            z11_network:
+                aliases: [node2]
+
+    node3:
+        build:
+            dockerfile: dockerfile
+        image: z11_token_ring
+        container_name: z11_node3
+        command: ["1"]
+        cap_add:
+            - NET_ADMIN
+        environment:
+            NODE_NAME: node3
+            NODE_UNI_PORT: 5000
+            NODE_BROAD_PORT: 6000
+            PREV_NODE_NAME: node2
+            PREV_NODE_UNI_PORT: 5000
+            NEXT_NODE_NAME: node4
+            NEXT_NODE_UNI_PORT: 5000
+            NETEM_ENABLED: ${NETEM_ENABLED:-false}
+            NETEM_DELAY: ${NETEM_DELAY:-0ms}
+            NETEM_JITTER: ${NETEM_JITTER:-0ms}
+            NETEM_LOSS: ${NETEM_LOSS:-0%}
+        networks:
+            z11_network:
+                aliases: [node3]
+
+    node4:
+        build:
+            dockerfile: dockerfile
+        image: z11_token_ring
+        container_name: z11_node4
+        command: ["1"]
+        cap_add:
+            - NET_ADMIN
+        environment:
+            NODE_NAME: node4
+            NODE_UNI_PORT: 5000
+            NODE_BROAD_PORT: 6000
+            PREV_NODE_NAME: node3
+            PREV_NODE_UNI_PORT: 5000
+            NEXT_NODE_NAME: node5
+            NEXT_NODE_UNI_PORT: 5000
+            NETEM_ENABLED: ${NETEM_ENABLED:-false}
+            NETEM_DELAY: ${NETEM_DELAY:-0ms}
+            NETEM_JITTER: ${NETEM_JITTER:-0ms}
+            NETEM_LOSS: ${NETEM_LOSS:-0%}
+        networks:
+            z11_network:
+                aliases: [node4]
+
+    node5:
+        build:
+            dockerfile: dockerfile
+        image: z11_token_ring
+        container_name: z11_node5
+        command: ["1"]
+        cap_add:
+            - NET_ADMIN
+        environment:
+            NODE_NAME: node5
+            NODE_UNI_PORT: 5000
+            NODE_BROAD_PORT: 6000
+            PREV_NODE_NAME: node4
+            PREV_NODE_UNI_PORT: 5000
+            NEXT_NODE_NAME: node6
+            NEXT_NODE_UNI_PORT: 5000
+            NETEM_ENABLED: ${NETEM_ENABLED:-false}
+            NETEM_DELAY: ${NETEM_DELAY:-0ms}
+            NETEM_JITTER: ${NETEM_JITTER:-0ms}
+            NETEM_LOSS: ${NETEM_LOSS:-0%}
+        networks:
+            z11_network:
+                aliases: [node5]
+
+    node6:
+        build:
+            dockerfile: dockerfile
+        image: z11_token_ring
+        container_name: z11_node6
+        command: ["1"]
+        cap_add:
+            - NET_ADMIN
+        environment:
+            NODE_NAME: node6
+            NODE_UNI_PORT: 5000
+            NODE_BROAD_PORT: 6000
+            PREV_NODE_NAME: node5
+            PREV_NODE_UNI_PORT: 5000
+            NEXT_NODE_NAME: node0
+            NEXT_NODE_UNI_PORT: 5000
+            NETEM_ENABLED: ${NETEM_ENABLED:-false}
+            NETEM_DELAY: ${NETEM_DELAY:-0ms}
+            NETEM_JITTER: ${NETEM_JITTER:-0ms}
+            NETEM_LOSS: ${NETEM_LOSS:-0%}
+        networks:
+            z11_network:
+                aliases: [node6]
+
+networks:
+    z11_network:
+        external: true
