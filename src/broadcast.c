@@ -287,6 +287,40 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
 
             if (topo > ring_state->last_seen_topo_version) {
                 ring_state->last_seen_topo_version = topo;
+                size_t pending_before = ring_state->join_state.count;
+                if (pending_before > 0) {
+                    size_t removed = drop_oldest_pending_joins(&ring_state->join_state, pending_before);
+                    LOG_INFO("Topo advanced via JOIN_COMMIT: cleared pending joins: removed=%zu", removed);
+                }
+            }
+
+            if (ring_state->join_inflight.active && ring_state->join_inflight.request_id == req) {
+                strncpy(
+                    ring_state->config.prev->node_name, ring_state->join_inflight.joiner.node_name,
+                    MAX_NODE_NAME_SIZE - 1
+                );
+                ring_state->config.prev->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+                ring_state->config.prev->unicast_port = ring_state->join_inflight.joiner.unicast_port;
+
+                remove_pending_join(&ring_state->join_state, ring_state->join_inflight.joiner.node_name);
+                join_state_record_completed(&ring_state->join_state, &ring_state->join_inflight.joiner);
+
+                ring_state->join_inflight.active = 0;
+                ring_state->join_inflight.got_confirm_prev = 0;
+                ring_state->join_inflight.got_confirm_joiner = 0;
+                ring_state->join_inflight.retries = 0;
+                ring_state->token_in.topo_version = ring_state->last_seen_topo_version;
+
+                LOG_INFO(
+                    "JOIN_INFLIGHT COMPLETE via JOIN_COMMIT: new prev=%s topo=%u",
+                    ring_state->config.prev->node_name, ring_state->last_seen_topo_version
+                );
+            }
+
+            if (ring_state->ack_sender.active && ring_state->ack_sender.request_id == req) {
+                ring_state->ack_sender.active = 0;
+                ring_state->ack_sender.got_ack_ack = 1;
+                LOG_INFO("JOIN_COMMIT: stopping ACK retries for req=%u", req);
             }
 
             LOG_INFO("JOIN_COMMIT: req=%u new=%s topo=%u", req, wire.new_name, topo);

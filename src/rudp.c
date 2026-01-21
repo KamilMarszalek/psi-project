@@ -14,11 +14,10 @@
 #include <unistd.h>
 
 #define MAX_FRAME_SIZE ((1 << 16) - 1)
-#define MAX_TRANSMISION_ATTEMPTS 30
-#define ACK_TIMEOUT_USEC 2000000
-#define ACK_ACK_TIMEOUT_USEC 1000000
-#define ACK_ACK_DELAY_USEC 0
-#define ACK_ACK_SEND_COUNT 1
+#define MAX_TRANSMISION_ATTEMPTS 3
+#define TIMEOUT_USEC 100000
+#define ACK_TIMEOUT_USEC 100000
+#define ACK_ACK_DELAY_USEC 250000
 #define MAX_RUDP_PEERS 32
 #define MAX_RUDP_PENDING 256
 
@@ -28,8 +27,8 @@ static int wait_for_frame(
 );
 static int pending_take_message_any(struct sockaddr_in* addr_out, void* out_buf, size_t* out_len);
 static int pending_store_frame(const struct sockaddr_in* addr, const void* buf, size_t len);
+static void pending_drop_peer_frames(const struct sockaddr_in* addr, frame_type_t type);
 static int send_ack_frame(int socket, const struct sockaddr_in* to, socklen_t to_len, uint8_t seq_bit);
-static int send_ack_ack_burst(int socket, const struct sockaddr_in* dest, socklen_t dest_len, uint8_t seq_bit);
 static int
 receive_message_frame(int socket, struct sockaddr_in* source_addr, void* out_buf, size_t out_buf_size, size_t* out_len);
 
@@ -79,7 +78,10 @@ static rudp_peer_t* get_peer(const struct sockaddr_in* addr, int create) {
     return NULL;
 }
 
-int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_in* dest_addr, socklen_t addrlen) {
+int rudp_sendto_with_limits(
+    int socket, const void* buf, size_t len, const struct sockaddr_in* dest_addr, socklen_t addrlen,
+    int ack_timeout_us, int max_attempts
+) {
     size_t total_size = sizeof(header_t) + len;
     if (total_size > MAX_FRAME_SIZE) {
         LOG_ERROR("Exceeded UDP datagram size (%d)", total_size);
@@ -93,12 +95,21 @@ int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_i
     }
 
     frame_t* frame = malloc(total_size);
+    if (!frame) {
+        LOG_ERROR("Allocation failure");
+        return -1;
+    }
     frame->header.frame_type = MESSAGE;
     frame->header.seq_bit = peer->state.send_seq_bit;
     memcpy(frame->data, buf, len);
 
+    pending_drop_peer_frames(dest_addr, ACK);
+    pending_drop_peer_frames(dest_addr, ACK_ACK);
+
     int ack_received = 0;
     int attempts = 0;
+    int ack_timeout = ack_timeout_us > 0 ? ack_timeout_us : ACK_TIMEOUT_USEC;
+    int max_retry = max_attempts;
     while (!ack_received) {
         if (sendto(socket, frame, total_size, 0, (struct sockaddr*) dest_addr, addrlen) < 0) {
             LOG_ERROR("Sending UDP frame: %s", strerror(errno));
@@ -108,7 +119,7 @@ int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_i
 
         frame_t ack_frame;
         int ack_result = wait_for_frame(
-            socket, dest_addr, ACK, peer->state.send_seq_bit, ACK_TIMEOUT_USEC, &ack_frame, sizeof(ack_frame)
+            socket, dest_addr, ACK, peer->state.send_seq_bit, ack_timeout, &ack_frame, sizeof(ack_frame)
         );
         if (ack_result < 0) {
             free(frame);
@@ -120,7 +131,7 @@ int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_i
             LOG_DEBUG(
                 "Timeout waiting for ACK(%u), resending message (retry number %d)", peer->state.send_seq_bit, attempts
             );
-            if (attempts >= MAX_TRANSMISION_ATTEMPTS) {
+            if (max_retry > 0 && attempts >= max_retry) {
                 LOG_WARN("ACK retries exhausted for seq=%u", peer->state.send_seq_bit);
                 free(frame);
                 return -1;
@@ -134,13 +145,24 @@ int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_i
 
     free(frame);
 
-    if (send_ack_ack_burst(socket, dest_addr, addrlen, peer->state.send_seq_bit) < 0) {
-        return -1;
+    for (int i = 0; i < MAX_TRANSMISION_ATTEMPTS; i++) {
+        frame_t ack_ack_frame = {.header = {.frame_type = ACK_ACK, .seq_bit = peer->state.send_seq_bit}};
+        if (sendto(socket, &ack_ack_frame, sizeof(header_t), 0, (struct sockaddr*) dest_addr, addrlen) < 0) {
+            LOG_ERROR("Sending ACK_ACK: %s", strerror(errno));
+            return -1;
+        }
+        usleep(ACK_ACK_DELAY_USEC);
     }
 
     peer->state.send_seq_bit ^= 1;
 
     return 0;
+}
+
+int rudp_sendto(int socket, const void* buf, size_t len, const struct sockaddr_in* dest_addr, socklen_t addrlen) {
+    return rudp_sendto_with_limits(
+        socket, buf, len, dest_addr, addrlen, ACK_TIMEOUT_USEC, MAX_TRANSMISION_ATTEMPTS
+    );
 }
 
 int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_addr, socklen_t addrlen) {
@@ -187,7 +209,7 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
 
             frame_t ack_ack_frame;
             int ack_ack_result = wait_for_frame(
-                socket, source_addr, ACK_ACK, message_frame->header.seq_bit, ACK_ACK_TIMEOUT_USEC, &ack_ack_frame,
+                socket, source_addr, ACK_ACK, message_frame->header.seq_bit, TIMEOUT_USEC, &ack_ack_frame,
                 sizeof(ack_ack_frame)
             );
             if (ack_ack_result < 0) {
@@ -215,7 +237,22 @@ int rudp_recvfrom(int socket, void* buf, size_t len, struct sockaddr_in* source_
             peer->state.expected_seq_bit ^= 1;
             return 0;
         }
+
+        if (receive_message_frame(socket, source_addr, frame_buf, sizeof(frame_buf), &frame_len) != 0) {
+            return 1;
+        }
     }
+}
+
+int rudp_has_pending(void) {
+    for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
+        if (!pending_frames[i].used)
+            continue;
+        frame_t* f = (frame_t*) pending_frames[i].data;
+        if (f->header.frame_type == MESSAGE)
+            return 1;
+    }
+    return 0;
 }
 
 static int pending_take_frame(
@@ -242,16 +279,13 @@ static int pending_take_frame(
     return 0;
 }
 
-
 static int pending_take_message_any(struct sockaddr_in* addr_out, void* out_buf, size_t* out_len) {
     for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
-        if (!pending_frames[i].used) {
+        if (!pending_frames[i].used)
             continue;
-        }
         frame_t* frame = (frame_t*) pending_frames[i].data;
-        if (frame->header.frame_type != MESSAGE) {
+        if (frame->header.frame_type != MESSAGE)
             continue;
-        }
         *addr_out = pending_frames[i].addr;
         *out_len = pending_frames[i].len;
         memcpy(out_buf, pending_frames[i].data, pending_frames[i].len);
@@ -266,7 +300,6 @@ static int pending_store_frame(const struct sockaddr_in* addr, const void* buf, 
         return 0;
 
     const frame_t* nf = (const frame_t*) buf;
-
 
     if (nf->header.frame_type != MESSAGE) {
         for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
@@ -298,6 +331,18 @@ static int pending_store_frame(const struct sockaddr_in* addr, const void* buf, 
     return 0;
 }
 
+static void pending_drop_peer_frames(const struct sockaddr_in* addr, frame_type_t type) {
+    for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
+        if (!pending_frames[i].used)
+            continue;
+        if (!addr_equal(&pending_frames[i].addr, addr))
+            continue;
+        frame_t* frame = (frame_t*) pending_frames[i].data;
+        if (frame->header.frame_type == type) {
+            pending_frames[i].used = 0;
+        }
+    }
+}
 
 static int send_ack_frame(int socket, const struct sockaddr_in* to, socklen_t to_len, uint8_t seq_bit) {
     frame_t ack_frame = {.header = {.frame_type = ACK, .seq_bit = seq_bit}};
@@ -308,33 +353,8 @@ static int send_ack_frame(int socket, const struct sockaddr_in* to, socklen_t to
     return 0;
 }
 
-static int send_ack_ack_burst(int socket, const struct sockaddr_in* dest, socklen_t dest_len, uint8_t seq_bit) {
-    for (int i = 0; i < ACK_ACK_SEND_COUNT; i++) {
-        frame_t ack_ack_frame = {.header = {.frame_type = ACK_ACK, .seq_bit = seq_bit}};
-        if (sendto(socket, &ack_ack_frame, sizeof(header_t), 0, (struct sockaddr*) dest, dest_len) < 0) {
-            LOG_ERROR("Sending ACK_ACK: %s", strerror(errno));
-            return -1;
-        }
-        usleep(ACK_ACK_DELAY_USEC);
-    }
-    return 0;
-}
-
-int rudp_has_pending(void) {
-    for (size_t i = 0; i < MAX_RUDP_PENDING; i++) {
-        if (!pending_frames[i].used)
-            continue;
-        frame_t* f = (frame_t*) pending_frames[i].data;
-        if (f->header.frame_type == MESSAGE)
-            return 1;
-    }
-    return 0;
-}
-
-
-static int receive_message_frame(
-    int socket, struct sockaddr_in* source_addr, void* out_buf, size_t out_buf_size, size_t* out_len
-) {
+static int
+receive_message_frame(int socket, struct sockaddr_in* source_addr, void* out_buf, size_t out_buf_size, size_t* out_len) {
     if (pending_take_message_any(source_addr, out_buf, out_len) == 1) {
         return 0;
     }
@@ -374,7 +394,6 @@ static int wait_for_frame(
     if (pending_take_frame(expected_addr, expected_type, expected_seq, out_buf, out_bufsize) == 1) {
         return 1;
     }
-
 
     while (1) {
         struct timeval now;

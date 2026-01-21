@@ -9,19 +9,21 @@
 
 #include <arpa/inet.h>
 #include <string.h>
+#include <time.h>
 
-static void update_topology_on_token(ring_state_t* state);
+static int update_topology_on_token(ring_state_t* state);
+static void clear_pending_joins_on_token(ring_state_t* state);
 static void handle_token_unicast(ring_state_t* state, const unicast_msg_t* msg);
 
-static int handle_join_accept_u(ring_state_t* st, const unicast_msg_t* msg);
+static int handle_join_accept_u(ring_state_t* st, const unicast_msg_t* msg, int unicast_socket);
 static int handle_join_ack_u(ring_state_t* st, const unicast_msg_t* msg, int unicast_socket);
 static void handle_join_ack_ack_u(ring_state_t* st, const unicast_msg_t* msg);
 
 static int apply_accept_if_relevant(ring_state_t* ring_state, const join_accept_t* accept);
 
-static void update_topology_on_token(ring_state_t* state) {
+static int update_topology_on_token(ring_state_t* state) {
     if (state->token_in.topo_version <= state->last_seen_topo_version) {
-        return;
+        return 0;
     }
 
     uint32_t old_topo = state->last_seen_topo_version;
@@ -36,6 +38,17 @@ static void update_topology_on_token(ring_state_t* state) {
         "Topo version advanced to %u (delta=%u), cleared pending joins: removed=%zu", state->last_seen_topo_version,
         delta, removed
     );
+    return 1;
+}
+
+static void clear_pending_joins_on_token(ring_state_t* state) {
+    size_t pending_before = state->join_state.count;
+    if (pending_before == 0) {
+        return;
+    }
+
+    size_t removed = drop_oldest_pending_joins(&state->join_state, pending_before);
+    LOG_INFO("Cleared pending joins on token receive: removed=%zu", removed);
 }
 
 static void handle_token_unicast(ring_state_t* state, const unicast_msg_t* msg) {
@@ -46,7 +59,9 @@ static void handle_token_unicast(ring_state_t* state, const unicast_msg_t* msg) 
 
     memcpy(&state->token_in, msg->payload, sizeof(token_t));
     if (state->joined) {
-        update_topology_on_token(state);
+        if (update_topology_on_token(state)) {
+            clear_pending_joins_on_token(state);
+        }
         state->have_token = 1;
         LOG_INFO("Received token via unicast");
     }
@@ -59,7 +74,7 @@ int unicast_dispatch_message(ring_state_t* state, const unicast_msg_t* msg, int 
     }
 
     if (msg->type == UMSG_JOIN_ACCEPT_U) {
-        return handle_join_accept_u(state, msg);
+        return handle_join_accept_u(state, msg, unicast_socket);
     }
 
     if (msg->type == UMSG_JOIN_ACK_U) {
@@ -75,7 +90,7 @@ int unicast_dispatch_message(ring_state_t* state, const unicast_msg_t* msg, int 
     return 0;
 }
 
-static int handle_join_accept_u(ring_state_t* st, const unicast_msg_t* msg) {
+static int handle_join_accept_u(ring_state_t* st, const unicast_msg_t* msg, int unicast_socket) {
     if (msg->payload_len != sizeof(join_accept_t)) {
         return 0;
     }
@@ -123,6 +138,29 @@ static int handle_join_accept_u(ring_state_t* st, const unicast_msg_t* msg) {
         st->ack_sender.last_sent = 0;
         st->ack_sender.retries = 0;
         st->ack_sender.got_ack_ack = 0;
+
+        join_ack_u_t ack = {0};
+        ack.request_id = htonl(accept.header.request_id);
+        strncpy(ack.from_name, st->config.current->node_name, MAX_NODE_NAME_SIZE - 1);
+        ack.from_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+
+        unicast_msg_t ack_msg = {0};
+        ack_msg.type = UMSG_JOIN_ACK_U;
+        ack_msg.payload_len = sizeof(ack);
+        memcpy(ack_msg.payload, &ack, sizeof(ack));
+
+        route_t coord = {0};
+        strncpy(coord.node_name, accept.before_name, MAX_NODE_NAME_SIZE - 1);
+        coord.node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
+        coord.unicast_port = accept.before_unicast_port;
+
+        LOG_INFO("SEND JOIN_ACK_U req=%u to=%s:%u", accept.header.request_id, coord.node_name, coord.unicast_port);
+        if (unicast_send_limited(
+                unicast_socket, &ack_msg, &coord, JOIN_ACCEPT_ACK_TIMEOUT_USEC, JOIN_ACCEPT_ACK_MAX_ATTEMPTS
+            ) == 0) {
+            st->ack_sender.last_sent = time(NULL);
+            st->ack_sender.retries = 1;
+        }
     }
 
     return 0;
@@ -183,7 +221,7 @@ static int handle_join_ack_u(ring_state_t* st, const unicast_msg_t* msg, int uni
     }
 
     for (int i = 0; i < JOIN_ACK_ACK_SEND_COUNT; i++) {
-        (void) unicast_send(unicast_socket, &out, &dst);
+        (void) unicast_send_limited(unicast_socket, &out, &dst, JOIN_ACCEPT_ACK_TIMEOUT_USEC, 1);
     }
 
     return 0;
