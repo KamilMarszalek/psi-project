@@ -312,8 +312,8 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
                 ring_state->token_in.topo_version = ring_state->last_seen_topo_version;
 
                 LOG_INFO(
-                    "JOIN_INFLIGHT COMPLETE via JOIN_COMMIT: new prev=%s topo=%u",
-                    ring_state->config.prev->node_name, ring_state->last_seen_topo_version
+                    "JOIN_INFLIGHT COMPLETE via JOIN_COMMIT: new prev=%s topo=%u", ring_state->config.prev->node_name,
+                    ring_state->last_seen_topo_version
                 );
             }
 

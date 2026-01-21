@@ -32,9 +32,7 @@ static int init_join_request_if_needed(ring_state_t* state, int broadcast_socket
 static int maybe_send_initial_token(ring_state_t* state);
 static int handle_broadcast_if_ready(int broadcast_socket, ring_state_t* state, const fd_set* rfds);
 static int handle_cli_if_ready(int cli_fd, ring_state_t* state, const fd_set* rfds);
-static int handle_unicast_if_ready(
-    int unicast_socket, int broadcast_socket, ring_state_t* state, const fd_set* rfds
-);
+static int handle_unicast_if_ready(int unicast_socket, int broadcast_socket, ring_state_t* state, const fd_set* rfds);
 static int handle_token_if_ready(ring_state_t* state, int unicast_socket, int broadcast_socket);
 static int join_ack_sender_tick(ring_state_t* st, int unicast_socket);
 
@@ -168,10 +166,9 @@ static int ring_on_token(ring_state_t* state, int unicast_socket) {
     sleep(1); // simulate processing delay
     unicast_msg_t msg = {.type = UMSG_TOKEN, .payload_len = sizeof(token_t)};
     memcpy(msg.payload, &out, sizeof(out));
-    if (unicast_send_limited(
-            unicast_socket, &msg, state->config.next, TOKEN_ACK_TIMEOUT_USEC, TOKEN_ACK_MAX_ATTEMPTS
-        ) < 0) {
-        LOG_WARN("Token send failed, will retry");
+    if (unicast_send_limited(unicast_socket, &msg, state->config.next, TOKEN_ACK_TIMEOUT_USEC, TOKEN_ACK_MAX_ATTEMPTS) <
+        0) {
+        LOG_DEBUG("Token send failed, will retry");
         return 0;
     }
 
@@ -301,9 +298,7 @@ static int handle_cli_if_ready(int cli_fd, ring_state_t* state, const fd_set* rf
     return 0;
 }
 
-static int handle_unicast_if_ready(
-    int unicast_socket, int broadcast_socket, ring_state_t* state, const fd_set* rfds
-) {
+static int handle_unicast_if_ready(int unicast_socket, int broadcast_socket, ring_state_t* state, const fd_set* rfds) {
     int have_pending = rudp_has_pending();
     if (!have_pending && !FD_ISSET(unicast_socket, rfds)) {
         return 0;
@@ -450,7 +445,7 @@ static int join_ack_sender_tick(ring_state_t* st, int unicast_socket) {
     }
 
     if (st->ack_sender.retries >= JOIN_ACK_MAX_RETRIES) {
-        LOG_WARN("JOIN_ACK retries exhausted for req=%u", st->ack_sender.request_id);
+        LOG_DEBUG("JOIN_ACK retries exhausted for req=%u", st->ack_sender.request_id);
         st->ack_sender.active = 0;
         return 0;
     }
@@ -471,9 +466,8 @@ static int join_ack_sender_tick(ring_state_t* st, int unicast_socket) {
     coord.unicast_port = st->ack_sender.coord_unicast_port;
 
     LOG_INFO("SEND JOIN_ACK_U req=%u to=%s:%u", st->ack_sender.request_id, coord.node_name, coord.unicast_port);
-    if (unicast_send_limited(
-            unicast_socket, &msg, &coord, JOIN_ACCEPT_ACK_TIMEOUT_USEC, JOIN_ACCEPT_ACK_MAX_ATTEMPTS
-        ) < 0) {}
+    if (unicast_send_limited(unicast_socket, &msg, &coord, JOIN_ACCEPT_ACK_TIMEOUT_USEC, JOIN_ACCEPT_ACK_MAX_ATTEMPTS) <
+        0) {}
 
     st->ack_sender.last_sent = now;
     st->ack_sender.retries++;

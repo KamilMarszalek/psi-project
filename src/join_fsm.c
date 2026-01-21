@@ -74,9 +74,7 @@ void join_fsm_start_inflight(ring_state_t* state, const pending_join_t* pending)
     state->join_inflight.last_sent = 0;
     state->join_inflight.retries = 0;
 
-    if (strncmp(
-            state->join_inflight.expected_prev_name, state->config.current->node_name, MAX_NODE_NAME_SIZE
-        ) == 0) {
+    if (strncmp(state->join_inflight.expected_prev_name, state->config.current->node_name, MAX_NODE_NAME_SIZE) == 0) {
         state->join_inflight.got_confirm_prev = 1;
     }
 }
@@ -89,10 +87,8 @@ static void join_fsm_try_complete(ring_state_t* state, int broadcast_socket) {
         return;
     }
 
-    int prev_is_self = (strncmp(
-                            state->join_inflight.expected_prev_name, state->config.current->node_name,
-                            MAX_NODE_NAME_SIZE
-                        ) == 0);
+    int prev_is_self =
+        (strncmp(state->join_inflight.expected_prev_name, state->config.current->node_name, MAX_NODE_NAME_SIZE) == 0);
 
     strncpy(state->config.prev->node_name, state->join_inflight.joiner.node_name, MAX_NODE_NAME_SIZE - 1);
     state->config.prev->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
@@ -146,7 +142,7 @@ int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket, int broadcas
     }
 
     if (state->join_inflight.retries >= JOIN_ACCEPT_RETRIES) {
-        LOG_WARN(
+        LOG_DEBUG(
             "Join accept retries exhausted for req=%u, keeping token and retrying", state->join_inflight.request_id
         );
         state->join_inflight.retries = 0;
@@ -175,9 +171,7 @@ int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket, int broadcas
     msg.payload_len = sizeof(wire);
     memcpy(msg.payload, &wire, sizeof(wire));
 
-    LOG_INFO(
-        "SENDING JOIN_ACCEPT_U: new=%s before=%s prev=%s", accept.new_name, accept.before_name, accept.prev_name
-    );
+    LOG_INFO("SENDING JOIN_ACCEPT_U: new=%s before=%s prev=%s", accept.new_name, accept.before_name, accept.prev_name);
 
     int send_error = 0;
     if (!state->join_inflight.got_confirm_joiner) {
@@ -188,7 +182,7 @@ int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket, int broadcas
         if (unicast_send_limited(
                 unicast_socket, &msg, &joiner, JOIN_ACCEPT_ACK_TIMEOUT_USEC, JOIN_ACCEPT_ACK_MAX_ATTEMPTS
             ) < 0) {
-            LOG_WARN("JOIN_ACCEPT_U to joiner failed, will retry");
+            LOG_DEBUG("JOIN_ACCEPT_U to joiner failed, will retry");
             send_error = 1;
         }
     }
@@ -197,7 +191,7 @@ int join_fsm_inflight_tick(ring_state_t* state, int unicast_socket, int broadcas
         if (unicast_send_limited(
                 unicast_socket, &msg, state->config.prev, JOIN_ACCEPT_ACK_TIMEOUT_USEC, JOIN_ACCEPT_ACK_MAX_ATTEMPTS
             ) < 0) {
-            LOG_WARN("JOIN_ACCEPT_U to prev failed, will retry");
+            LOG_DEBUG("JOIN_ACCEPT_U to prev failed, will retry");
             send_error = 1;
         }
     }

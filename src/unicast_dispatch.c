@@ -190,10 +190,7 @@ static int handle_join_ack_u(ring_state_t* st, const unicast_msg_t* msg, int uni
             st->join_inflight.got_confirm_joiner = 1;
             matched_joiner = 1;
         }
-        LOG_INFO(
-            "RECV JOIN_ACK_U req=%u from=%s prev=%d joiner=%d", req, wire.from_name, matched_prev,
-            matched_joiner
-        );
+        LOG_INFO("RECV JOIN_ACK_U req=%u from=%s prev=%d joiner=%d", req, wire.from_name, matched_prev, matched_joiner);
         join_fsm_maybe_complete(st, st->broadcast_socket);
     }
 
