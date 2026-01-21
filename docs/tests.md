@@ -1,13 +1,5 @@
 # Testy pierścienia (Docker)
 
-## Źródła
-
-Opis bazuje na:
-
-- logach w `logs/with-message/`,
-- skryptach uruchamiających scenariusze: `scripts/run-with-netem.sh` i
-  `scripts/run-all-experiments.sh`.
-
 ## Scenariusze testowe
 
 Testy były wykonywane jako scenariusze Docker Compose. W logach znajdują się
@@ -29,7 +21,7 @@ Aby wpuścić wiadomość do pierścienia, należy uruchomić komendę:
 docker exec -it "nazwa kontenera nadawcy" ./build/src/writer "treść" obiorca
 ```
 
-## Miejsca na fragmenty logów
+## Fragmenty logów
 
 Poniżej znajdują się fragmenty logów z poszczególnych scenariuszy; wpisy mogą
 być przeplatane, ponieważ logi pochodzą z wielu równoległych procesów (kilka
@@ -98,7 +90,8 @@ z11_node1  | [INFO] 20-01-2026 19:52:23: Received token via unicast
 z11_node1  | [INFO] 20-01-2026 19:52:23: TOKEN: have_token=1 pending=0 inflight=0
 ```
 
-Można zauważyć, że na początku zostaje opróżniona kolejka oczekujących na dołączenie procesów, a dopiero po dołączeniu procesów token wznawia ruch.
+Można zauważyć, że na początku zostaje opróżniona kolejka oczekujących na
+dołączenie procesów, a dopiero po dołączeniu procesów token wznawia ruch.
 
 ### Dołączanie węzłów z netem
 
@@ -156,8 +149,9 @@ z11_node3  | [INFO] 20-01-2026 19:57:02: Received token via unicast
 z11_node3  | [INFO] 20-01-2026 19:57:02: TOKEN: have_token=1 pending=0 inflight=0
 ```
 
-Tutaj dołączanie przebiega wolniej ze względu na opóźnienia i straty pakietów w sieci
-symulowane przez netem. Funkcjonalenie jednak wszystko działa podobnie jak w scenariuszu bez netem.
+Tutaj dołączanie przebiega wolniej ze względu na opóźnienia i straty pakietów w
+sieci symulowane przez netem. Funkcjonalenie jednak wszystko działa podobnie jak
+w scenariuszu bez netem.
 
 ### Stabilna praca pierścienia (7 węzłów)
 
@@ -178,7 +172,9 @@ z11_node6  | [INFO] 20-01-2026 19:45:21: TOKEN: have_token=1 pending=0 inflight=
 z11_node0  | [INFO] 20-01-2026 19:45:22: Received token via unicast
 z11_node0  | [INFO] 20-01-2026 19:45:22: TOKEN: have_token=1 pending=0 inflight=0
 ```
-Można zauważyć, że token krąży bez przeszkód pomiędzy wszystkimi węzłami pierścienia.
+
+Można zauważyć, że token krąży bez przeszkód pomiędzy wszystkimi węzłami
+pierścienia.
 
 ### Stabilna praca z netem
 
@@ -200,7 +196,9 @@ z11_node6  | [INFO] 20-01-2026 19:49:37: TOKEN: have_token=1 pending=0 inflight=
 z11_node0  | [INFO] 20-01-2026 19:49:51: Received token via unicast
 z11_node0  | [INFO] 20-01-2026 19:49:51: TOKEN: have_token=1 pending=0 inflight=0
 ```
-Netem wprowadza opóźnienia i straty pakietów, ale token nadal krąży pomiędzy węzłami.
+
+Netem wprowadza opóźnienia i straty pakietów, ale token nadal krąży pomiędzy
+węzłami.
 
 ### Dodanie wiadomości do pierścienia
 
@@ -211,34 +209,103 @@ docker exec -it z11_node1 ./build/src/writer "kapitan 44" node0
 ```
 
 ```c
-z11_node0  | [INFO] 20-01-2026 19:20:01: Received token via unicast
-z11_node0  | [INFO] 20-01-2026 19:20:01: TOKEN: have_token=1 pending=0 inflight=0
-z11_node1  | [INFO] 20-01-2026 19:20:02: Received token via unicast
-z11_node1  | [INFO] 20-01-2026 19:20:02: TOKEN: have_token=1 pending=0 inflight=0
-z11_node1  | [INFO] 20-01-2026 19:20:02: Attaching CLI token: kapitan 44
+z11_node1  | [INFO] 20-01-2026 19:37:56: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:37:56: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 20-01-2026 19:37:56: Attaching CLI token: kapitan 44
 z11_node1  | 
-z11_node2  | [INFO] 20-01-2026 19:20:03: Received token via unicast
-z11_node2  | [INFO] 20-01-2026 19:20:03: TOKEN: have_token=1 pending=0 inflight=0
-z11_node2  | [INFO] 20-01-2026 19:20:03: Full token received for another node - forwarding
+z11_node2  | [INFO] 20-01-2026 19:37:58: Received token via unicast
+z11_node2  | [INFO] 20-01-2026 19:37:58: TOKEN: have_token=1 pending=0 inflight=0
+z11_node2  | [INFO] 20-01-2026 19:37:58: Full token received for another node - forwarding
 z11_node2  | 
-z11_node3  | [INFO] 20-01-2026 19:20:04: Received token via unicast
-z11_node3  | [INFO] 20-01-2026 19:20:04: TOKEN: have_token=1 pending=0 inflight=0
-z11_node3  | [INFO] 20-01-2026 19:20:04: Full token received for another node - forwarding
+z11_node3  | [INFO] 20-01-2026 19:38:15: Received token via unicast
+z11_node3  | [INFO] 20-01-2026 19:38:15: TOKEN: have_token=1 pending=0 inflight=0
+z11_node3  | [INFO] 20-01-2026 19:38:15: Full token received for another node - forwarding
 z11_node3  | 
-z11_node4  | [INFO] 20-01-2026 19:20:05: Received token via unicast
-z11_node4  | [INFO] 20-01-2026 19:20:05: TOKEN: have_token=1 pending=0 inflight=0
-z11_node4  | [INFO] 20-01-2026 19:20:05: Full token received for another node - forwarding
+z11_node4  | [INFO] 20-01-2026 19:38:18: Received token via unicast
+z11_node4  | [INFO] 20-01-2026 19:38:18: TOKEN: have_token=1 pending=0 inflight=0
+z11_node4  | [INFO] 20-01-2026 19:38:18: Full token received for another node - forwarding
 z11_node4  | 
-z11_node5  | [INFO] 20-01-2026 19:20:06: Received token via unicast
-z11_node5  | [INFO] 20-01-2026 19:20:06: TOKEN: have_token=1 pending=0 inflight=0
-z11_node5  | [INFO] 20-01-2026 19:20:06: Full token received for another node - forwarding
+z11_node5  | [INFO] 20-01-2026 19:38:20: Received token via unicast
+z11_node5  | [INFO] 20-01-2026 19:38:20: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 20-01-2026 19:38:20: Full token received for another node - forwarding
 z11_node5  | 
-z11_node6  | [INFO] 20-01-2026 19:20:07: Received token via unicast
-z11_node6  | [INFO] 20-01-2026 19:20:07: TOKEN: have_token=1 pending=0 inflight=0
-z11_node6  | [INFO] 20-01-2026 19:20:07: Full token received for another node - forwarding
+z11_node6  | [INFO] 20-01-2026 19:38:22: Received token via unicast
+z11_node6  | [INFO] 20-01-2026 19:38:22: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 20-01-2026 19:38:22: Full token received for another node - forwarding
 z11_node6  | 
-z11_node0  | [INFO] 20-01-2026 19:20:08: Received token via unicast
-z11_node0  | [INFO] 20-01-2026 19:20:08: TOKEN: have_token=1 pending=0 inflight=0
-z11_node0  | [INFO] 20-01-2026 19:20:08: Received token for me: kapitan 44
+z11_node0  | [INFO] 20-01-2026 19:38:24: Received token via unicast
+z11_node0  | [INFO] 20-01-2026 19:38:24: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 20-01-2026 19:38:24: Received token for me: kapitan 44
+z11_node0  | 
+z11_node1  | [INFO] 20-01-2026 19:38:29: Received token via unicast
+z11_node1  | [INFO] 20-01-2026 19:38:29: TOKEN: have_token=1 pending=0 inflight=0
 ```
-`node1` wprowadza wiadomość do pierścienia, a `node0` ją odbiera po przejściu przez pozostałe węzły.
+
+`node1` wprowadza wiadomość do pierścienia, a `node0` ją odbiera po przejściu
+przez pozostałe węzły.
+
+### Dodanie wiadomości do pierścienia kiedy token jest pełny
+
+Do wysłania wielu wiadomości został użyty skrypt `send-mess.sh`, który wysyła
+wiele wiadomości, w tym kilka z tego samego węzła
+
+```bash
+docker exec -it z11_node2 ./build/src/writer "2 do 0" node0
+docker exec -it z11_node1 ./build/src/writer "1 do 5" node5
+docker exec -it z11_node1 ./build/src/writer "1 do 0" node0
+docker exec -it z11_node0 ./build/src/writer "0 do 6" node6
+docker exec -it z11_node4 ./build/src/writer "4 do 5" node5
+docker exec -it z11_node1 ./build/src/writer "1 do 6" node6
+```
+
+```c
+z11_node4  | [INFO] 21-01-2026 21:27:07: Received token via unicast
+z11_node4  | [INFO] 21-01-2026 21:27:07: TOKEN: have_token=1 pending=0 inflight=0
+z11_node4  | [INFO] 21-01-2026 21:27:07: Attaching CLI token: 4 do 5
+z11_node4  | 
+z11_node5  | [INFO] 21-01-2026 21:27:08: Received token via unicast
+z11_node5  | [INFO] 21-01-2026 21:27:08: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 21-01-2026 21:27:08: Received token for me: 4 do 5
+z11_node5  | 
+z11_node6  | [INFO] 21-01-2026 21:27:09: Received token via unicast
+z11_node6  | [INFO] 21-01-2026 21:27:09: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 21:27:10: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 21:27:10: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 21:27:10: Attaching CLI token: 0 do 6
+[...]
+z11_node6  | [INFO] 21-01-2026 21:27:16: Received token via unicast
+z11_node6  | [INFO] 21-01-2026 21:27:16: TOKEN: have_token=1 pending=0 inflight=0
+z11_node6  | [INFO] 21-01-2026 21:27:16: Received token for me: 0 do 6
+z11_node6  | 
+z11_node0  | [INFO] 21-01-2026 21:27:17: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 21:27:17: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 21-01-2026 21:27:18: Received token via unicast
+z11_node1  | [INFO] 21-01-2026 21:27:18: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 21-01-2026 21:27:18: Attaching CLI token: 1 do 5
+[...]
+z11_node5  | [INFO] 21-01-2026 21:27:22: Received token via unicast
+z11_node5  | [INFO] 21-01-2026 21:27:22: TOKEN: have_token=1 pending=0 inflight=0
+z11_node5  | [INFO] 21-01-2026 21:27:22: Received token for me: 1 do 5
+[...]
+z11_node1  | [INFO] 21-01-2026 21:27:25: Attaching CLI token: 1 do 0
+[...]
+z11_node0  | [INFO] 21-01-2026 21:27:31: Received token via unicast
+z11_node0  | [INFO] 21-01-2026 21:27:31: TOKEN: have_token=1 pending=0 inflight=0
+z11_node0  | [INFO] 21-01-2026 21:27:31: Received token for me: 1 do 0
+z11_node0  | 
+z11_node1  | [INFO] 21-01-2026 21:27:32: Received token via unicast
+z11_node1  | [INFO] 21-01-2026 21:27:32: TOKEN: have_token=1 pending=0 inflight=0
+z11_node1  | [INFO] 21-01-2026 21:27:32: Attaching CLI token: 1 do 6
+[...]
+z11_node6  | [INFO] 21-01-2026 21:27:37: Received token for me: 1 do 6
+[...]
+z11_node2  | [INFO] 21-01-2026 21:27:40: Attaching CLI token: 2 do 0
+[...]
+z11_node0  | [INFO] 21-01-2026 21:27:45: Received token for me: 2 do 0
+```
+
+Mimo wielu nadawców token przechowuje jedną wiadomość na raz i nie jest
+nadpisywany - każda wiadomość trafia do tokena dopiero po jego opróżnieniu,
+dzięki czemu kolejne wpisy są rozdzielone w czasie i docierają do właściwych
+odbiorców w kolejnych obiegach pierścienia.
+
