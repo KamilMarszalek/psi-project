@@ -44,8 +44,6 @@ typedef struct {
 
     token_t cli_pending;
     int have_cli_pending;
-
-    struct timeval forward_at;
 } ring_state_t;
 
 int ring_initialize(route_config_t* config, descriptors_t* descriptors, int joined);

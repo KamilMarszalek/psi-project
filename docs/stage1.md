@@ -278,8 +278,6 @@ typedef struct RingState {
 
     token_t cli_pending; // token z danymi od użytkownika czekający na wysłanie
     int have_cli_pending; // czy jest token z danymi od użytkownika czekający na wysłanie
-
-    struct timeval forward_at; // czas, w którym należy przekazać token dalej
 } ring_state_t;
 ```
 Główna funkcja znajduje się w pliku ring.c. Jest to pętla zdarzeń wykorzystująca select do obsługi gniazd UDP (broadcast, unicast) oraz wejścia CLI. W pętli sprawdzane są następujące warunki:
