@@ -27,45 +27,6 @@ static int send_to_all_targets(int sock, const void* msg, size_t len, const broa
     return ok ? 0 : -1;
 }
 
-static void apply_accept_if_relevant(ring_state_t* ring_state, const join_accept_t* accept, int* did_apply) {
-    *did_apply = 0;
-    const char* me = ring_state->config.current->node_name;
-
-    if (strncmp(me, accept->new_name, MAX_NODE_NAME_SIZE) == 0) {
-        if (ring_state->joined) {
-            return;
-        }
-        if (!ring_state->joined && accept->header.request_id != ring_state->join_request_id) {
-            return;
-        }
-        strncpy(ring_state->config.prev->node_name, accept->prev_name, MAX_NODE_NAME_SIZE - 1);
-        ring_state->config.prev->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-        ring_state->config.prev->unicast_port = accept->prev_unicast_port;
-
-        strncpy(ring_state->config.next->node_name, accept->before_name, MAX_NODE_NAME_SIZE - 1);
-        ring_state->config.next->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-        ring_state->config.next->unicast_port = accept->before_unicast_port;
-        ring_state->joined = 1;
-        ring_state->join_request_last_sent = 0;
-        ring_state->join_request_retries = 0;
-        *did_apply = 1;
-        return;
-    }
-
-    if (strncmp(me, accept->prev_name, MAX_NODE_NAME_SIZE) == 0) {
-        if (strncmp(ring_state->config.next->node_name, accept->before_name, MAX_NODE_NAME_SIZE) != 0) {
-            return;
-        }
-        strncpy(ring_state->config.next->node_name, accept->new_name, MAX_NODE_NAME_SIZE - 1);
-        ring_state->config.next->node_name[MAX_NODE_NAME_SIZE - 1] = '\0';
-        ring_state->config.next->unicast_port = accept->new_unicast_port;
-        ring_state->joined = 1;
-        *did_apply = 1;
-        return;
-    }
-}
-
-
 int broadcast_setup_socket(const route_t* current) {
     int sock_fd = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock_fd == -1) {
