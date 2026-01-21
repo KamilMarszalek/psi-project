@@ -182,7 +182,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
 
             if (ring_state->join_inflight.active &&
                 strncmp(ring_state->join_inflight.joiner.node_name, request_host.node_name, MAX_NODE_NAME_SIZE) == 0) {
-                LOG_INFO(
+                LOG_DEBUG(
                     "Ignoring JOIN_REQUEST id=%u name=%s (already inflight)", request_host.header.request_id,
                     request_host.node_name
                 );
@@ -190,7 +190,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             }
 
             if (join_state_is_completed(&ring_state->join_state, &request_host)) {
-                LOG_INFO(
+                LOG_DEBUG(
                     "Ignoring JOIN_REQUEST id=%u name=%s (already joined)", request_host.header.request_id,
                     request_host.node_name
                 );
@@ -241,14 +241,14 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             );
 
 
-            LOG_INFO(
+            LOG_DEBUG(
                 "RECV JOIN_ACCEPT: req=%u new=%s before=%s prev=%s", accept_host.header.request_id,
                 accept_host.new_name, accept_host.before_name, accept_host.prev_name
             );
 
             int did_apply = 0;
             apply_accept_if_relevant(ring_state, &accept_host, &did_apply);
-            LOG_INFO("APPLY JOIN_ACCEPT: did_apply=%d", did_apply);
+            LOG_DEBUG("APPLY JOIN_ACCEPT: did_apply=%d", did_apply);
 
             if (did_apply) {
                 ring_state->ack_sender.active = 1;
@@ -290,7 +290,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
                 size_t pending_before = ring_state->join_state.count;
                 if (pending_before > 0) {
                     size_t removed = drop_oldest_pending_joins(&ring_state->join_state, pending_before);
-                    LOG_INFO("Topo advanced via JOIN_COMMIT: cleared pending joins: removed=%zu", removed);
+                    LOG_DEBUG("Topo advanced via JOIN_COMMIT: cleared pending joins: removed=%zu", removed);
                 }
             }
 
@@ -320,7 +320,7 @@ int handle_broadcast(int broadcast_socket, ring_state_t* ring_state) {
             if (ring_state->ack_sender.active && ring_state->ack_sender.request_id == req) {
                 ring_state->ack_sender.active = 0;
                 ring_state->ack_sender.got_ack_ack = 1;
-                LOG_INFO("JOIN_COMMIT: stopping ACK retries for req=%u", req);
+                LOG_DEBUG("JOIN_COMMIT: stopping ACK retries for req=%u", req);
             }
 
             LOG_INFO("JOIN_COMMIT: req=%u new=%s topo=%u", req, wire.new_name, topo);
