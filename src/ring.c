@@ -288,7 +288,7 @@ static int handle_broadcast_if_ready(int broadcast_socket, ring_state_t* state, 
 }
 
 static int handle_cli_if_ready(int cli_fd, ring_state_t* state, const fd_set* rfds) {
-    if (!FD_ISSET(cli_fd, rfds)) {
+    if (!FD_ISSET(cli_fd, rfds) || !state->token_in.is_empty) {
         return 0;
     }
     if (cli_handle_read(cli_fd, &state->cli_pending) < 0) {
