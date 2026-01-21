@@ -98,6 +98,8 @@ z11_node1  | [INFO] 20-01-2026 19:52:23: Received token via unicast
 z11_node1  | [INFO] 20-01-2026 19:52:23: TOKEN: have_token=1 pending=0 inflight=0
 ```
 
+Można zauważyć, że na początku zostaje opróżniona kolejka oczekujących na dołączenie procesów, a dopiero po dołączeniu procesów token wznawia ruch.
+
 ### Dołączanie węzłów z netem
 
 ```c
@@ -154,6 +156,9 @@ z11_node3  | [INFO] 20-01-2026 19:57:02: Received token via unicast
 z11_node3  | [INFO] 20-01-2026 19:57:02: TOKEN: have_token=1 pending=0 inflight=0
 ```
 
+Tutaj dołączanie przebiega wolniej ze względu na opóźnienia i straty pakietów w sieci
+symulowane przez netem. Funkcjonalenie jednak wszystko działa podobnie jak w scenariuszu bez netem.
+
 ### Stabilna praca pierścienia (7 węzłów)
 
 ```c
@@ -173,6 +178,7 @@ z11_node6  | [INFO] 20-01-2026 19:45:21: TOKEN: have_token=1 pending=0 inflight=
 z11_node0  | [INFO] 20-01-2026 19:45:22: Received token via unicast
 z11_node0  | [INFO] 20-01-2026 19:45:22: TOKEN: have_token=1 pending=0 inflight=0
 ```
+Można zauważyć, że token krąży bez przeszkód pomiędzy wszystkimi węzłami pierścienia.
 
 ### Stabilna praca z netem
 
@@ -194,6 +200,7 @@ z11_node6  | [INFO] 20-01-2026 19:49:37: TOKEN: have_token=1 pending=0 inflight=
 z11_node0  | [INFO] 20-01-2026 19:49:51: Received token via unicast
 z11_node0  | [INFO] 20-01-2026 19:49:51: TOKEN: have_token=1 pending=0 inflight=0
 ```
+Netem wprowadza opóźnienia i straty pakietów, ale token nadal krąży pomiędzy węzłami.
 
 ### Dodanie wiadomości do pierścienia
 
@@ -234,3 +241,4 @@ z11_node0  | [INFO] 20-01-2026 19:20:08: Received token via unicast
 z11_node0  | [INFO] 20-01-2026 19:20:08: TOKEN: have_token=1 pending=0 inflight=0
 z11_node0  | [INFO] 20-01-2026 19:20:08: Received token for me: kapitan 44
 ```
+`node1` wprowadza wiadomość do pierścienia, a `node0` ją odbiera po przejściu przez pozostałe węzły.
