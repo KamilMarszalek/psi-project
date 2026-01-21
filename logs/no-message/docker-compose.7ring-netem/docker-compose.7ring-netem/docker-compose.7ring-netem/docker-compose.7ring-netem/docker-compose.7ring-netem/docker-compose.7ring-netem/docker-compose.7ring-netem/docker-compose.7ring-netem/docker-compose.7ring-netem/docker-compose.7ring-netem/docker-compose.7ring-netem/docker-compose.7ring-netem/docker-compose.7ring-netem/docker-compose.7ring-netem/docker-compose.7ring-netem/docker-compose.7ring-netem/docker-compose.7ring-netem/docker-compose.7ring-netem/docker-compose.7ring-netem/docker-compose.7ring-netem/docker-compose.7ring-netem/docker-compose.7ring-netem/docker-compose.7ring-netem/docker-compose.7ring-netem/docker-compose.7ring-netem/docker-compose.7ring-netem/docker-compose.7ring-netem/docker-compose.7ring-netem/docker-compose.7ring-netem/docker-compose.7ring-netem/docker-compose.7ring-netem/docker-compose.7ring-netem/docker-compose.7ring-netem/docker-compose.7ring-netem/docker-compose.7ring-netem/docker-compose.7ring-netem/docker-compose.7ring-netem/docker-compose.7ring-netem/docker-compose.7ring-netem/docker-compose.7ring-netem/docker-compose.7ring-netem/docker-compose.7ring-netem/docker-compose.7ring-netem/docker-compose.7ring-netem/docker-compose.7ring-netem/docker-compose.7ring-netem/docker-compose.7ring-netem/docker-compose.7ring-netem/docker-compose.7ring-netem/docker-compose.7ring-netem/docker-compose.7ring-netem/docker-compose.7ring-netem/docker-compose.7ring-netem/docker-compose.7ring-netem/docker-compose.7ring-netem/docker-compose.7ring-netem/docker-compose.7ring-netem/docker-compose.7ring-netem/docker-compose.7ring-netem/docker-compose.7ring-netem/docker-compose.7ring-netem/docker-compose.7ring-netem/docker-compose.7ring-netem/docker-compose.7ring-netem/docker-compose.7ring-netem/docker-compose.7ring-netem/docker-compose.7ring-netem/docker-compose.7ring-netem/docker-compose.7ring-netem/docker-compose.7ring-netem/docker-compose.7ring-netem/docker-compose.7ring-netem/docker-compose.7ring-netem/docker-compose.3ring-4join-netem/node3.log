@@ -1,6 +1,0 @@
-z11_node3  | [INFO] Applying netem: delay=1000ms jitter=500ms loss=50%
-z11_node3  | [INFO] Delaying start by 2s
-z11_node3  | [INFO] 20-01-2026 19:54:47: Node initalized, waiting for UDP packets
-z11_node3  | [INFO] 20-01-2026 19:57:02: Received token via unicast
-z11_node3  | [INFO] 20-01-2026 19:57:02: TOKEN: have_token=1 pending=0 inflight=0
-
