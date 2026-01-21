@@ -338,6 +338,21 @@ void join_fsm_handle_ack_broadcast(ring_state_t* state, const join_ack_t* ack, i
 void join_fsm_maybe_complete(ring_state_t* state, int broadcast_socket);
 ```
 
+## Opis interfejsu użytkownika
+Użytkownik może wchodzić w interakcję z pierścieniem wykorzystując dwa skompilowane pliki wykonywalne - `core` i `writer`. Definiują one następujące interfejsy:
+   - `core` - program do rozpoczęcia pracy w pierścieniu. Możliwe są dwa argumenty wywołania, 0 i 1, które odpowiednio wskazują, czy proces będzie wysyłał żądanie do dołączenia, czy znajduje już się w pierścieniu. Niezależnie od tego jaki wariant wybierzemy zdefiniowane muszą być następujące zmienne środowiskowe:
+      - `NODE_NAME` - nazwa węzła;
+      - `NODE_UNI_PORT` - port nasłuchiwania unicast;
+      - `NODE_BROAD_PORT` -port nasłuchiwania broadcast; 
 
+      W przypadku, gdy pierścień znajduje się już w pierścieniu (wywołanie z flagą 1) należy dodatkowo rozszerzyć zbiór zmiennych o te związane z tablicą routingu danego węła:
+     - `PREV_NODE_NAME` - nazwa poprzedniego wezła;
+     - `PREV_NODE_UNI_PORT` - port nasłuchiwania unicast poprzedniego wezła;
+     - `NEXT_NODE_NAME` - nazwa następnego węzła;
+     - `NEXT_NODE_UNI_PORT` - port nasłuchiwania unicast następnego węzła.
 
+     Jeżeli proces żąda dołączyć do pierścienia, tablica routingu dla nowego procesu zostanie zdefiniowana automatycznie - dołączanie obsłuży węzęł, który w danej chwili posiada token.
 
+  - `writer` -  program do interakcji użytkownika z pierścieniem, umożliwia wysłanie wiadomości do odbiorcy - innego procesu dołączonego do pierścienia. Podczas wywoływania programu jako argumenty należy podać nazwę węzła skojarzoną z odbiorcą (resolver DNS odpowiednio zmapuje nazwę na adres), a także treść wiadomości w postaci tekstowej. Sygnatura wywołania programu może zostać przedstawiona jako `./writer <data> <receiver_name`. W środowisku skonteneryzowanym za pomocą Dockera uruchomienie wygląda analogicznie, jednakże musi zostać podana także nazwa kontenera `docker exec -it <container_name> /app/build/src/writer <data> <receiver_name>`.
+
+Szczegółowa konfiguracja sieci oraz zdefiniownaych zmiennych środowiskowych znajduje się w plikach `docker-compose`.
